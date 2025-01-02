@@ -1,3 +1,9 @@
+## [1.3.22](https://github.com/Th3S4mur41/hw-hooks/compare/v1.3.21...v1.3.22) (2025-01-02)
+
+### Bug Fixes
+
+* **attest:** get the correct image name from package.json ([05feffb](https://github.com/Th3S4mur41/hw-hooks/commit/05feffb2ee322104093da3fa5b0bd28f5026e30e))
+
 ## [1.3.21](https://github.com/Th3S4mur41/hw-hooks/compare/v1.3.20...v1.3.21) (2025-01-02)
 
 ### Bug Fixes
