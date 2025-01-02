@@ -25,6 +25,7 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
+      attestations: write
       contents: write
       issues: write
       pull-requests: write
@@ -70,3 +71,11 @@ jobs:
         run: |
           npm run release
           echo "version=$(npm run env | grep npm_package_version | cut -d '=' -f 2)" >> $GITHUB_OUTPUT
+
+      - name: '✍️ Attest'
+        uses: actions/attest-build-provenance@v2
+        id: attest
+        with:
+          subject-name: ghcr.io/${{ github.repository }}
+          subject-digest: ${{ steps.npm-release.outputs.docker_image_sha_long }}
+          push-to-registry: true
