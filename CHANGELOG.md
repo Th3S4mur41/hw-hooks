@@ -1,3 +1,9 @@
+## [1.3.21](https://github.com/Th3S4mur41/hw-hooks/compare/v1.3.20...v1.3.21) (2025-01-02)
+
+### Bug Fixes
+
+* update digest format for docker attestation ([d3af611](https://github.com/Th3S4mur41/hw-hooks/commit/d3af611559d0a91ec6ea6570460099a2887b2524))
+
 ## [1.3.20](https://github.com/Th3S4mur41/hw-hooks/compare/v1.3.19...v1.3.20) (2025-01-02)
 
 ### Bug Fixes
