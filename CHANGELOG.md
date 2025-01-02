@@ -1,3 +1,9 @@
+## [1.3.20](https://github.com/Th3S4mur41/hw-hooks/compare/v1.3.19...v1.3.20) (2025-01-02)
+
+### Bug Fixes
+
+* attest docker image build provenance ([21e7297](https://github.com/Th3S4mur41/hw-hooks/commit/21e7297428b0ec3752c6a063d1478fbf6b8370cc))
+
 ## [1.3.19](https://github.com/Th3S4mur41/hw-hooks/compare/v1.3.18...v1.3.19) (2024-10-25)
 
 ### Bug Fixes
