@@ -77,5 +77,5 @@ jobs:
         id: attest
         with:
           subject-name: ghcr.io/${{ github.repository }}
-          subject-digest: ${{ steps.npm-release.outputs.docker_image_sha_long }}
+          subject-digest: sha256:${{ steps.npm-release.outputs.docker_image_sha_long }}
           push-to-registry: true
