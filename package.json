@@ -45,7 +45,7 @@
 		"semantic-release": "^24.0.0"
 	},
 	"dependencies": {
-		"node-cron": "^3.0.2",
+		"node-cron": "^4.0.3",
 		"yargs": "^17.7.1"
 	},
 	"overrides": {
