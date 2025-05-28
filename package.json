@@ -46,7 +46,7 @@
 	},
 	"dependencies": {
 		"node-cron": "^4.0.3",
-		"yargs": "^17.7.1"
+		"yargs": "^18.0.0"
 	},
 	"overrides": {
 		"conventional-changelog-conventionalcommits": ">= 8.0.0"
