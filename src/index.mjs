@@ -91,7 +91,7 @@ const getData = async () => {
 			console.log(data);
 			return data;
 		})
-		.catch((error) => {
+		.catch((_error) => {
 			console.error(`Cannot retreive data from ${hwe_api}`);
 		});
 };
