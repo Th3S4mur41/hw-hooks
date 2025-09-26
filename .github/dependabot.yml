@@ -17,6 +17,18 @@ updates:
       interval: 'daily'
       time: '00:00'
       timezone: 'Europe/Berlin'
+    groups:
+      babel:
+        patterns:
+          - '@babel/*'
+      commitlint:
+        patterns:
+          - '@commitlint/*'
+      typescript-eslint:
+        patterns:
+          - '@typescript-eslint/*'
+      
+    
 
   - package-ecosystem: 'github-actions'
     directory: '/'
