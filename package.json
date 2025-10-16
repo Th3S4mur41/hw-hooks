@@ -50,7 +50,7 @@
 		"husky": "^9.0.5",
 		"lint-staged": "^16.0.0",
 		"prettier": "^3.0.0",
-		"semantic-release": "^24.0.0"
+		"semantic-release": "^25.0.0"
 	},
 	"dependencies": {
 		"node-cron": "^4.0.3",
