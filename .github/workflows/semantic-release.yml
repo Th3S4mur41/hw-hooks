@@ -6,8 +6,6 @@ on:
   # Allows you to call this workflow from other workflows
   workflow_call:
     secrets:
-      NPM_TOKEN:
-        required: false
       GH_TOKEN:
         required: false
     outputs:
@@ -53,6 +51,7 @@ jobs:
           node-version-file: '.nvmrc'
           check-latest: true
           cache: 'npm'
+          registry-url: 'https://registry.npmjs.org'
 
       - name: '⛓️ Install dependencies'
         env:
@@ -64,7 +63,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_TOKEN: ${{ secrets.GH_TOKEN || secrets.GITHUB_TOKEN }} # Needed to push to GitHub
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }} # Needed to publish to NPM registry
           DOCKER_REGISTRY_USER: ${{ github.actor }}
           DOCKER_REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
           HUSKY: 0 # disable pre-commit hooks
