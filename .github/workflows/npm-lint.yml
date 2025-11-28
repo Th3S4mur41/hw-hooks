@@ -34,3 +34,6 @@ jobs:
 
       - name: '✅ Lint code'
         run: npm run lint
+
+      - name: '🔏 Audit NPM dependencies signatures'
+        run: npm audit signatures
