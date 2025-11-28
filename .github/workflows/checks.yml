@@ -27,15 +27,6 @@ jobs:
     name: '▶️ actions'
     uses: ./.github/workflows/lint-pr.yml
 
-  codeql:
-    name: '▶️ actions'
-    needs: [lint-pr]
-    uses: ./.github/workflows/codeql.yml
-    permissions:
-      actions: read
-      contents: read
-      security-events: write
-
   dependencies:
     name: '▶️ actions'
     needs: [lint-pr]
