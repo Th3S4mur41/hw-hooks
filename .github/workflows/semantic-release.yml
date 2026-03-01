@@ -72,7 +72,7 @@ jobs:
           echo "package_name=$(npm run env | grep npm_package_name | cut -d '=' -f 2)" >> $GITHUB_OUTPUT
 
       - name: '✍️ Attest'
-        uses: actions/attest-build-provenance@v4.0.0
+        uses: actions/attest-build-provenance@v4.1.0
         id: attest
         if: steps.npm-release.outputs.docker_image_sha_long != ''
         with:
