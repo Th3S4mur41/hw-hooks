@@ -42,7 +42,7 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.4.10",
-		"@codedependant/semantic-release-docker": "^5.1.0",
+		"@codedependant/semantic-release-docker": "^6.1.0",
 		"@commitlint/cli": "^20.0.0",
 		"@commitlint/config-conventional": "^20.0.0",
 		"@semantic-release/changelog": "^6.0.3",
