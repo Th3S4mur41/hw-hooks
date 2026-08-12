@@ -39,14 +39,14 @@ jobs:
 
     steps:
       - name: '☁️ Checkout repository'
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.workflow_run.head_branch || github.base_ref }}
           fetch-depth: 0
           persist-credentials: false
 
       - name: '⚙️ Use Node.js'
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: '.nvmrc'
           check-latest: true
@@ -72,7 +72,7 @@ jobs:
           echo "package_name=$(npm run env | grep npm_package_name | cut -d '=' -f 2)" >> $GITHUB_OUTPUT
 
       - name: '✍️ Attest'
-        uses: actions/attest-build-provenance@v4.2.2
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         id: attest
         if: steps.npm-release.outputs.docker_image_sha_long != ''
         with:
