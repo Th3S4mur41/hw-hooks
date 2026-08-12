@@ -20,15 +20,16 @@ jobs:
 
     steps:
       - name: '☁️ Checkout repository'
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
 
       # check for the most recent release: https://github.com/Namchee/conventional-pr/releases
       - name: '✅ Lint PR'
-        uses: Namchee/conventional-pr@v0.16.0
+        uses: Namchee/conventional-pr@130d7ab18df28e92ff803e37bfdf0600fb2a318e # v0.16.0
         with:
           access_token: ${{ secrets.GITHUB_TOKEN }}
           label: '⁉️ invalid'
           branch_pattern: ''
+          issue: false
