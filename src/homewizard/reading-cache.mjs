@@ -7,6 +7,29 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 
 const DEFAULT_CACHE_FILE = "./config/.cache.json";
+const READING_KEY_PATTERN = /^[a-z0-9_.-]+$/i;
+
+/**
+ * Rebuild a cached entry from validated primitives only: an ISO `updated` timestamp and finite numeric
+ * meter values. Anything else in the file is dropped, so a corrupted or tampered cache can't be forwarded
+ * @param {*} entry - A raw entry read from the cache file
+ * @returns {Object|undefined} - The sanitized reading, or undefined when the entry is unusable
+ */
+const sanitizeReading = (entry) => {
+	if (!entry || typeof entry !== "object" || Array.isArray(entry)) return undefined;
+
+	const updated = typeof entry.updated === "string" ? Date.parse(entry.updated) : Number.NaN;
+	if (!Number.isFinite(updated)) return undefined;
+
+	const reading = { updated: new Date(updated).toISOString() };
+	for (const [key, value] of Object.entries(entry)) {
+		if (key !== "updated" && READING_KEY_PATTERN.test(key) && typeof value === "number" && Number.isFinite(value)) {
+			reading[key] = value;
+		}
+	}
+
+	return reading;
+};
 
 export class ReadingCache {
 	#filePath;
@@ -57,7 +80,7 @@ export class ReadingCache {
 	};
 
 	/**
-	 * Load previously cached readings from disk, defaulting to an empty list
+	 * Load previously cached readings from disk, dropping anything that doesn't pass validation
 	 * @returns {Array<Object>}
 	 */
 	#load = () => {
@@ -67,7 +90,14 @@ export class ReadingCache {
 				console.warn(`[ReadingCache] Ignoring invalid cache format at ${this.#filePath} (expected an array)`);
 				return [];
 			}
-			return parsed;
+
+			const readings = parsed.map(sanitizeReading).filter((reading) => reading !== undefined);
+			if (readings.length !== parsed.length) {
+				console.warn(
+					`[ReadingCache] Dropped ${parsed.length - readings.length} invalid reading(s) from ${this.#filePath}`,
+				);
+			}
+			return readings;
 		} catch (error) {
 			if (error.code !== "ENOENT") {
 				console.warn(`[ReadingCache] Ignoring unreadable cache at ${this.#filePath}: ${error.message}`);

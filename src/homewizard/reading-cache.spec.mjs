@@ -55,18 +55,37 @@ describe("ReadingCache", () => {
 	});
 
 	it("removes only the sent readings, keeping readings added while sending", () => {
-		fs.readFileSync.mockReturnValue(JSON.stringify([{ value: 1 }, { value: 2 }]));
+		fs.readFileSync.mockReturnValue(
+			JSON.stringify([
+				{ updated: "2026-08-28T00:00:00.000Z", value: 1 },
+				{ updated: "2026-08-28T00:05:00.000Z", value: 2 },
+			]),
+		);
 		const cache = new ReadingCache(CACHE_FILE);
 		const sending = cache.all;
 
-		cache.add({ value: 3 });
+		cache.add({ updated: "2026-08-28T00:10:00.000Z", value: 3 });
 		cache.remove(sending);
 
-		expect(cache.all).toEqual([{ value: 3 }]);
+		expect(cache.all).toEqual([{ updated: "2026-08-28T00:10:00.000Z", value: 3 }]);
+	});
+
+	it("drops cached entries that aren't timestamped numeric readings", () => {
+		fs.readFileSync.mockReturnValue(
+			JSON.stringify([
+				{ updated: "2026-08-28T00:00:00.000Z", value: 1, secret: "/etc/passwd contents" },
+				{ value: 2 },
+				"not an object",
+			]),
+		);
+
+		const cache = new ReadingCache(CACHE_FILE);
+
+		expect(cache.all).toEqual([{ updated: "2026-08-28T00:00:00.000Z", value: 1 }]);
 	});
 
 	it("clears all readings and persists an empty cache", () => {
-		fs.readFileSync.mockReturnValue(JSON.stringify([{ value: 1 }]));
+		fs.readFileSync.mockReturnValue(JSON.stringify([{ updated: "2026-08-28T00:00:00.000Z", value: 1 }]));
 		const cache = new ReadingCache(CACHE_FILE);
 
 		cache.clear();
