@@ -8,6 +8,22 @@ import { Webhook } from "./webhook.mjs";
 const HELLO_URL = "https://hooks.energyid.eu/hello";
 const CLAIM_POLL_INTERVAL = 30_000; // 30s, per EnergyID docs
 const HELLO_REFRESH_INTERVAL = 24 * 60 * 60 * 1000; // refresh the connection every 24h, independent of sending, per EnergyID docs
+const ENERGYID_KEY_PATTERN = /^[a-z0-9_-]+(\.[a-z0-9_-]+)*$/i; // predefined properties, optionally prefixed, e.g. "el-i.t1"
+const WEBHOOK_HOST = "hooks.energyid.eu";
+
+/**
+ * Whether a webhook URL is an https EnergyID endpoint, so a tampered config can't redirect readings elsewhere
+ * @param {string} url - The webhook URL to check
+ * @returns {boolean} - True when the URL is safe to post to
+ */
+const isEnergyIdWebhookUrl = (url) => {
+	try {
+		const { protocol, hostname } = new URL(url);
+		return protocol === "https:" && hostname === WEBHOOK_HOST;
+	} catch {
+		return false;
+	}
+};
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -130,6 +146,11 @@ export class EnergyIdWebhook extends Webhook {
 	 */
 	#applyConnection = (connection) => {
 		if (!connection?.webhookUrl) return;
+
+		if (!isEnergyIdWebhookUrl(connection.webhookUrl)) {
+			console.warn(`[${this.name}] Ignoring webhook URL outside https://${WEBHOOK_HOST}: ${connection.webhookUrl}`);
+			return;
+		}
 
 		this.#webhookUrl = connection.webhookUrl;
 		this.#headers = connection.headers;
@@ -255,21 +276,26 @@ export class EnergyIdWebhook extends Webhook {
 	};
 
 	/**
-	 * Map a single reading to an EnergyID payload ({ts, ...}) using the configured mapping
+	 * Map a single reading to an EnergyID payload ({ts, ...}) using the configured mapping.
+	 * Only finite numeric meter values are forwarded, so nothing else can leak into the request body
 	 * @param {Object} reading - A single HomeWizard reading
 	 * @returns {Object|undefined} - The mapped payload, or undefined if no mapped keys are present
 	 */
 	#mapReading = (reading) => {
 		const payload = {};
 		for (const [dataKey, energyIdKey] of Object.entries(this.mapping)) {
-			if (reading[dataKey] !== undefined) {
-				payload[energyIdKey] = reading[dataKey];
+			const value = reading[dataKey];
+			if (typeof value === "number" && Number.isFinite(value) && ENERGYID_KEY_PATTERN.test(energyIdKey)) {
+				payload[energyIdKey] = value;
 			}
 		}
 
 		if (Object.keys(payload).length === 0) return undefined;
 
-		payload.ts = Math.floor(Date.parse(reading.updated) / 1000);
+		const timestamp = Math.floor(Date.parse(reading.updated) / 1000);
+		if (!Number.isFinite(timestamp)) return undefined;
+
+		payload.ts = timestamp;
 		return payload;
 	};
 

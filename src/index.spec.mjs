@@ -14,6 +14,10 @@ const createMockCache = (initial = []) => {
 			return [...readings];
 		},
 		add: vi.fn((reading) => readings.push(reading)),
+		remove: vi.fn((sent) => {
+			const dropped = new Set(sent);
+			readings = readings.filter((reading) => !dropped.has(reading));
+		}),
 		clear: vi.fn(() => {
 			readings = [];
 		}),
@@ -36,7 +40,7 @@ describe("index", () => {
 	});
 
 	describe("execute", () => {
-		it("reads once, caches the reading and sends it, clearing the cache on success", async () => {
+		it("reads once, caches the reading and sends it, dropping the sent readings on success", async () => {
 			const device = createMockDevice();
 			const cache = createMockCache();
 			const hook = createMockHook();
@@ -47,7 +51,8 @@ describe("index", () => {
 			expect(hook.connect).toHaveBeenCalled();
 			expect(cache.add).toHaveBeenCalledWith({ updated: "2026-08-28T00:00:00.000Z", value: 1 });
 			expect(hook.send).toHaveBeenCalledWith([{ updated: "2026-08-28T00:00:00.000Z", value: 1 }], false);
-			expect(cache.clear).toHaveBeenCalled();
+			expect(cache.remove).toHaveBeenCalledWith([{ updated: "2026-08-28T00:00:00.000Z", value: 1 }]);
+			expect(cache.all).toEqual([]);
 		});
 
 		it("keeps the cache when sending fails", async () => {
@@ -57,7 +62,7 @@ describe("index", () => {
 
 			await execute(device, hook, cache);
 
-			expect(cache.clear).not.toHaveBeenCalled();
+			expect(cache.remove).not.toHaveBeenCalled();
 		});
 	});
 

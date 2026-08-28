@@ -54,6 +54,17 @@ describe("ReadingCache", () => {
 		);
 	});
 
+	it("removes only the sent readings, keeping readings added while sending", () => {
+		fs.readFileSync.mockReturnValue(JSON.stringify([{ value: 1 }, { value: 2 }]));
+		const cache = new ReadingCache(CACHE_FILE);
+		const sending = cache.all;
+
+		cache.add({ value: 3 });
+		cache.remove(sending);
+
+		expect(cache.all).toEqual([{ value: 3 }]);
+	});
+
 	it("clears all readings and persists an empty cache", () => {
 		fs.readFileSync.mockReturnValue(JSON.stringify([{ value: 1 }]));
 		const cache = new ReadingCache(CACHE_FILE);

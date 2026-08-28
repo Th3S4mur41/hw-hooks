@@ -20,6 +20,7 @@ const DEFAULT_MAPPING = {
 	total_power_export_t2_kwh: "el-i.t2",
 	total_liter_m3: "dw",
 };
+const MAPPING_KEY_PATTERN = /^[a-z0-9_-]+(\.[a-z0-9_-]+)*$/i;
 
 // Walk up from this file to find package.json: works both from src/bin (dev) and bin (build output)
 const readPackageJson = () => {
@@ -38,6 +39,26 @@ const readPackageJson = () => {
 };
 
 const pkg = readPackageJson();
+
+// Only well-formed meter-field -> EnergyID-property pairs are kept, so nothing else from the file can end up in a request
+const readMapping = () => {
+	const parsed = JSON.parse(fs.readFileSync(MAPPING_FILE, "utf8"));
+	const mapping = {};
+
+	for (const [meterField, energyIdKey] of Object.entries(parsed)) {
+		if (
+			typeof energyIdKey !== "string" ||
+			!MAPPING_KEY_PATTERN.test(meterField) ||
+			!MAPPING_KEY_PATTERN.test(energyIdKey)
+		) {
+			console.warn(`Ignoring invalid entry in ${MAPPING_FILE}: ${JSON.stringify(meterField)}`);
+			continue;
+		}
+		mapping[meterField] = energyIdKey;
+	}
+
+	return mapping;
+};
 
 const yargsBin = yargs(hideBin(process.argv))
 	.usage("$0 --meter <homewizard meter host or ip> [options]")
@@ -97,7 +118,7 @@ try {
 } catch (error) {
 	if (error.code !== "EEXIST") throw error;
 }
-const mapping = JSON.parse(fs.readFileSync(MAPPING_FILE, "utf8"));
+const mapping = readMapping();
 
 const config = new Config(`${CONFIG_DIR}/config.jsonc`);
 const device = await Device.init(argv.meter, argv.offset, config);

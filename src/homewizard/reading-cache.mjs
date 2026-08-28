@@ -38,6 +38,17 @@ export class ReadingCache {
 	};
 
 	/**
+	 * Remove the given readings (by identity, as returned by `all`) and persist. Readings cached while a
+	 * send was in-flight are kept
+	 * @param {Array<Object>} readings - The readings to drop
+	 */
+	remove = (readings) => {
+		const sent = new Set(readings);
+		this.#readings = this.#readings.filter((reading) => !sent.has(reading));
+		this.#save();
+	};
+
+	/**
 	 * Clear all cached readings (e.g. once they've been sent successfully) and persist
 	 */
 	clear = () => {
