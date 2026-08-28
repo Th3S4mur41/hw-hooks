@@ -2,7 +2,15 @@
 	"name": "hw-hooks",
 	"version": "2.0.0-alpha.2",
 	"description": "A tool to synchronize data from HomeWizard to EnergyID",
-	"keywords": ["homewizard", "homewizard-energy", "homewizard-p1-meter", "energyid", "sync", "api", "webhook"],
+	"keywords": [
+		"homewizard",
+		"homewizard-energy",
+		"homewizard-p1-meter",
+		"energyid",
+		"sync",
+		"api",
+		"webhook"
+	],
 	"author": "Michaël Vanderheyden <hello@th3s4mur41.me> (https://th3s4mur41.me)",
 	"license": "MIT",
 	"homepage": "https://github.com/Th3S4mur41/hw-hooks",
@@ -20,7 +28,10 @@
 	},
 	"type": "module",
 	"main": "index.mjs",
-	"files": ["bin/", "index.mjs"],
+	"files": [
+		"bin/",
+		"index.mjs"
+	],
 	"bin": {
 		"hw-hooks": "bin/cli.mjs"
 	},
