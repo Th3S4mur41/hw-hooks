@@ -243,7 +243,8 @@ export class EnergyIdWebhook extends Webhook {
 	 * @returns {Promise<boolean>} - True once connected
 	 */
 	#ensureProvisioned = async () => {
-		const isStale = Date.now() - this.#lastHelloAt.getTime() >= HELLO_REFRESH_INTERVAL;
+		const lastHelloAt = this.#lastHelloAt.getTime();
+		const isStale = !Number.isFinite(lastHelloAt) || Date.now() - lastHelloAt >= HELLO_REFRESH_INTERVAL;
 		if (this.#webhookUrl && !isStale) return true;
 
 		// Share a single in-flight provisioning run, so concurrent senders don't poll /hello in parallel

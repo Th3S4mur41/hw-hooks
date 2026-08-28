@@ -11,7 +11,7 @@
 
 **hw-hooks** previously known as [hw2energyid](https://www.npmjs.com/package/hw2energyid) is small tool that triggers webhooks based on data gathered from [HomeWizard](https://www.homewizard.com/) devices to synchronize your data with your [EnergyID](https://app.energyid.eu/) dashboard.
 Since HomeWizard devices API are only available within your local network, using an [EnergyID App](https://app.energyid.eu/integrations) to synchronize the data is not possible.  
-**hw-hooks** helps bridge the gap by reading the data from your local network and sending them to EnergyId.
+**hw-hooks** helps bridge the gap by reading the data from your local network and sending them to EnergyID.
 
 ## Prerequisites
 
@@ -135,7 +135,7 @@ printf '%s' '<your EnergyID provisioning secret>' > secrets/provisioning_secret
 > The credentials are never baked into the image and are never passed as command line arguments. hw-hooks reads them from `/run/secrets/<name>`, from a `<name>_FILE` path, or from an environment variable of the same name, in that order of preference. Once the device is claimed you can drop the `secrets` section.
 
 > **Note**  
-> The `dns` section is required to resolve the EnergyId webhook URL.
+> The `dns` section is required to resolve the EnergyID webhook URL.
 > If you are using a different DNS server, replace
 
 > [!IMPORTANT]  
@@ -202,4 +202,4 @@ npx hw-hooks --meter=watermeter-65d8c7 --offset=22.334
 ## Links
 
 [homewizard dicovery docs](https://api-documentation.homewizard.com/docs/discovery)  
-[EnergyId Webhook Docs](https://help.energyid.eu/en/developer/incoming-webhooks/)
+[EnergyID Webhook Docs](https://help.energyid.eu/en/developer/incoming-webhooks/)
