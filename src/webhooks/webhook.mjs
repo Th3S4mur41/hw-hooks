@@ -196,18 +196,17 @@ export class Webhook {
 		console.log(`[${this.#name}] Sending ${JSON.stringify(jsonData)}...`);
 
 		try {
-			const response = await this.#request(jsonData);
+			let response = await this.#request(jsonData);
 			if (response.status === 401) {
 				await this._onUnauthorized();
-				const retryResponse = await this.#request(jsonData);
-				if (!retryResponse.ok) {
-					throw new Error(`Failed to send data: ${retryResponse.statusText}`);
-				}
-			} else if (response.status === 429) {
-				const retryAfter = response.headers.get("Retry-After");
-				console.warn(`[${this.#name}] Rate limited. Retry after ${retryAfter}s`);
-				return { exitCode: SEND_RESULT.ERROR, message: `Rate limited. Retry after ${retryAfter}s` };
-			} else if (!response.ok) {
+				response = await this.#request(jsonData);
+			}
+
+			// Applied to the 401 retry response too, so a rate limit hit there is reported the same way
+			const rateLimited = this.#handleRateLimit(response);
+			if (rateLimited) return rateLimited;
+
+			if (!response.ok) {
 				throw new Error(`Failed to send data: ${response.statusText}`);
 			}
 			console.log(`[${this.#name}] Data sent successfully`);
@@ -218,6 +217,19 @@ export class Webhook {
 
 		this.#synchronized = now;
 		return { exitCode: SEND_RESULT.SUCCESS, message: "Data sent successfully" };
+	};
+
+	/**
+	 * Report a 429 response as a structured result, defaulting Retry-After when the header is missing
+	 * @param {Response} response - The response to check
+	 * @returns {{exitCode: number, message: string}|undefined} - The result when rate limited, otherwise undefined
+	 */
+	#handleRateLimit = (response) => {
+		if (response.status !== 429) return undefined;
+
+		const retryAfter = response.headers.get("Retry-After") ?? "unknown";
+		console.warn(`[${this.#name}] Rate limited. Retry after ${retryAfter}s`);
+		return { exitCode: SEND_RESULT.ERROR, message: `Rate limited. Retry after ${retryAfter}s` };
 	};
 
 	/**

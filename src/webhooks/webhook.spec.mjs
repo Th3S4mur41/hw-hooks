@@ -98,6 +98,47 @@ describe("Webhook", () => {
 		expect(result).toEqual({ exitCode: 1, message: "Failed to send data: Internal Server Error" });
 	});
 
+	it("should report a rate limit hit", async () => {
+		fetch.mockResolvedValueOnce({
+			ok: false,
+			status: 429,
+			headers: { get: () => "30" },
+		});
+
+		const webhook = new Webhook(mockName, mockUrl, mockMethod, mockMapping);
+
+		const result = await webhook.send(mockData);
+
+		expect(result).toEqual({ exitCode: 1, message: "Rate limited. Retry after 30s" });
+	});
+
+	it("should default the retry delay when the Retry-After header is missing", async () => {
+		fetch.mockResolvedValueOnce({
+			ok: false,
+			status: 429,
+			headers: { get: () => null },
+		});
+
+		const webhook = new Webhook(mockName, mockUrl, mockMethod, mockMapping);
+
+		const result = await webhook.send(mockData);
+
+		expect(result).toEqual({ exitCode: 1, message: "Rate limited. Retry after unknowns" });
+	});
+
+	it("should report a rate limit hit on the 401 retry response too", async () => {
+		fetch
+			.mockResolvedValueOnce({ ok: false, status: 401, statusText: "Unauthorized" })
+			.mockResolvedValueOnce({ ok: false, status: 429, headers: { get: () => "30" } });
+
+		const webhook = new Webhook(mockName, mockUrl, mockMethod, mockMapping);
+
+		const result = await webhook.send(mockData);
+
+		expect(fetch).toHaveBeenCalledTimes(2);
+		expect(result).toEqual({ exitCode: 1, message: "Rate limited. Retry after 30s" });
+	});
+
 	it("should log data instead of sending when dryRun is true", async () => {
 		const consoleLogSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 
