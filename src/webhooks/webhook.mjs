@@ -90,6 +90,12 @@ export class Webhook {
 	}
 
 	/**
+	 * Prepare the webhook before sending (e.g. provisioning). No-op by default.
+	 * @returns {Promise<boolean>} - True when the webhook is ready to send
+	 */
+	connect = async () => true;
+
+	/**
 	 * Format the data according to the mapping
 	 * @param {Object} data - The data to be formatted
 	 * @returns {Object} - The formatted data

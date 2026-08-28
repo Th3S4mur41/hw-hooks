@@ -37,6 +37,9 @@ const flushCache = async (hook, cache) => {
 	const readings = cache.all;
 	if (readings.length === 0) return;
 
+	// /hello must always succeed before data may be sent; it resolves only once the device is claimed
+	if (!dryRun) await hook.connect();
+
 	const result = await hook.send(readings, dryRun);
 	if (result.exitCode === 0) cache.clear();
 };
@@ -69,7 +72,7 @@ export const schedule = async (device, hook, cache, readInterval = DEFAULT_READ_
 	setInterval(() => readAndCache(device, cache), readInterval).unref?.();
 	await readAndCache(device, cache);
 
-	await hook.connect(); // learn the upload interval before scheduling sends
+	if (!dryRun) await hook.connect(); // learn the upload interval before scheduling sends
 	const sendInterval = (hook.uploadInterval || 60) * 1000;
 	console.log(`Sending cached readings every ${sendInterval}ms (EnergyID upload interval)`);
 	setInterval(() => flushCache(hook, cache), sendInterval).unref?.();

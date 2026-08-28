@@ -25,19 +25,21 @@ export class EnergyIdWebhook extends Webhook {
 	#recordNumber;
 	#lastHelloAt;
 	#helloTimer;
+	#provisioning;
+	#claimCodeShown;
 
 	/**
 	 * Create a new EnergyIdWebhook instance. Device identity defaults to the HomeWizard device info
-	 * previously persisted to `config` (see Device.init); provisioning credentials are generated when
-	 * not provided. Everything is persisted (under the "energyid" namespace) to `config`.
+	 * previously persisted to `config` (see Device.init); provisioning credentials must be provided once and
+	 * are then reused from `config`. Everything is persisted (under the "energyid" namespace) to `config`.
 	 * @param {string} name - Set a name for the webhook
 	 * @param {Object} options - Provisioning options
 	 * @param {import("../config/config.mjs").Config} options.config - Config instance used to read/persist state
 	 * @param {string} [options.deviceId] - Unique device id (defaults to config's homewizard.serial)
 	 * @param {string} [options.deviceName] - Human-readable device name (defaults to config's homewizard.name)
 	 * @param {string} [options.firmwareVersion] - Device firmware version (defaults to config's homewizard.firmwareVersion)
-	 * @param {string} [options.provisioningKey] - The EnergyID provisioning key (generated if omitted)
-	 * @param {string} [options.provisioningSecret] - The EnergyID provisioning secret (generated if omitted)
+	 * @param {string} [options.provisioningKey] - The EnergyID provisioning key (required unless already stored in config)
+	 * @param {string} [options.provisioningSecret] - The EnergyID provisioning secret (required unless already stored in config)
 	 * @param {Object} mapping - [optional] Map of data key to EnergyID (predefined) property key (Default: {})
 	 * @param {number} callInterval - [optional] Set the interval in seconds to call the webhook (Default: 60s)
 	 */
@@ -47,14 +49,29 @@ export class EnergyIdWebhook extends Webhook {
 		mapping = {},
 		callInterval = 60,
 	) {
+		// Resolved before super() so an incomplete setup fails before the webhook announces itself
+		const key = provisioningKey || config.get("energyid.provisioningKey");
+		const secret = provisioningSecret || config.get("energyid.provisioningSecret");
+		if (!key || !secret) {
+			throw new Error(
+				[
+					"Missing EnergyID provisioning credentials.",
+					"  1. Open https://app.energyid.eu/integrations/webhook-in",
+					'  2. Click the "+" button in the top right corner of the "Provisioning credentials" box',
+					"  3. Start hw-hooks with --provisioning-key=<key> --provisioning-secret=<secret>",
+					"They are stored in the config afterwards, so this is only needed once.",
+				].join("\n"),
+			);
+		}
+
 		super(name, null, "POST", mapping, callInterval);
 		this.#config = config;
 
 		this.#deviceId = deviceId || config.get("homewizard.serial") || randomUUID();
 		this.#deviceName = deviceName || config.get("homewizard.name") || this.#deviceId;
 		this.#firmwareVersion = firmwareVersion || config.get("homewizard.firmwareVersion");
-		this.#provisioningKey = provisioningKey || config.get("energyid.provisioningKey") || randomUUID();
-		this.#provisioningSecret = provisioningSecret || config.get("energyid.provisioningSecret") || randomUUID();
+		this.#provisioningKey = key;
+		this.#provisioningSecret = secret;
 		this.#lastHelloAt = new Date(config.get("energyid.lastHelloAt", 0));
 		this.#applyConnection({
 			webhookUrl: config.get("energyid.webhookUrl"),
@@ -77,13 +94,21 @@ export class EnergyIdWebhook extends Webhook {
 	}
 
 	/**
-	 * Ensure the device is provisioned and start the independent 24h refresh timer.
-	 * Safe to call ahead of time (e.g. to read `uploadInterval`)
-	 * @returns {Promise<void>}
+	 * Whether a WebhookConnectionInfo is available, i.e. data may be sent
+	 * @returns {boolean} - True when the device is claimed and a webhook URL is known
+	 */
+	get isConnected() {
+		return Boolean(this.#webhookUrl);
+	}
+
+	/**
+	 * Ensure the device is provisioned via /hello and start the independent 24h refresh timer.
+	 * Resolves only once a WebhookConnectionInfo was received, polling /hello while the device is unclaimed
+	 * @returns {Promise<boolean>} - True once connected
 	 */
 	connect = async () => {
 		this.#startHelloRefreshTimer();
-		await this.#ensureProvisioned();
+		return this.#ensureProvisioned();
 	};
 
 	/**
@@ -126,8 +151,26 @@ export class EnergyIdWebhook extends Webhook {
 	};
 
 	/**
-	 * Call the /hello endpoint to provision the device, polling every 30s until claimed
-	 * @returns {Promise<void>}
+	 * Print the claim instructions for the user. Only printed once per claim code, so polling stays silent
+	 * @param {Object} claim - The WebhookClaimInfo returned by /hello (claimCode, claimUrl, exp)
+	 */
+	#showClaimInstructions = ({ claimCode, claimUrl, exp }) => {
+		if (this.#claimCodeShown === claimCode) return;
+		this.#claimCodeShown = claimCode;
+
+		console.log("");
+		console.log(`[${this.name}] This device is not linked to an EnergyID record yet.`);
+		console.log(`  Claim code: ${claimCode}`);
+		console.log(`  Claim URL:  ${claimUrl}`);
+		if (exp) console.log(`  Expires:    ${new Date(exp * 1000).toLocaleString()}`);
+		console.log("  Open the claim URL and follow the instructions on the EnergyID website to link this device.");
+		console.log("  Waiting for the device to be claimed...");
+		console.log("");
+	};
+
+	/**
+	 * Call the /hello endpoint once
+	 * @returns {Promise<boolean>} - True when a WebhookConnectionInfo was received, false when still unclaimed
 	 */
 	#hello = async () => {
 		const response = await fetch(HELLO_URL, {
@@ -144,34 +187,51 @@ export class EnergyIdWebhook extends Webhook {
 			}),
 		});
 
+		if (response.status === 401 || response.status === 403) {
+			throw new Error(
+				`Provisioning credentials rejected by EnergyID (${response.status}). Activate the "Incoming webhook" integration on your EnergyID record to obtain a provisioning key and secret, then pass them with --provisioning-key and --provisioning-secret.`,
+			);
+		}
+
 		if (!response.ok) {
-			throw new Error(`Failed to provision device: ${response.statusText}`);
+			throw new Error(`Failed to provision device: ${response.status} ${response.statusText}`);
 		}
 
 		const body = await response.json();
 
-		if (body.webhookUrl) {
-			this.#applyConnection(body);
-			this.#lastHelloAt = new Date();
-			this.#persistConnection();
-			console.log(`[${this.name}] Device claimed for record ${body.recordName} (${body.recordNumber})`);
-			return;
+		if (!body.webhookUrl) {
+			this.#showClaimInstructions(body);
+			return false;
 		}
 
-		console.log(`[${this.name}] Device not yet claimed. Open ${body.claimUrl} (code: ${body.claimCode}) to link it.`);
-		await sleep(CLAIM_POLL_INTERVAL);
-		await this.#hello();
+		this.#applyConnection(body);
+		this.#lastHelloAt = new Date();
+		this.#persistConnection();
+		this.#claimCodeShown = undefined;
+		console.log(`[${this.name}] Device claimed for record ${body.recordName} (${body.recordNumber})`);
+		return true;
 	};
 
 	/**
-	 * Ensure the device is provisioned, (re-)calling /hello if there's no connection yet or it's stale (> 24h)
-	 * @returns {Promise<void>}
+	 * Ensure a WebhookConnectionInfo is available, (re-)calling /hello when there's no connection yet or it's
+	 * stale (> 24h), and polling every 30s while the device is unclaimed
+	 * @returns {Promise<boolean>} - True once connected
 	 */
 	#ensureProvisioned = async () => {
 		const isStale = Date.now() - this.#lastHelloAt.getTime() >= HELLO_REFRESH_INTERVAL;
-		if (!this.#webhookUrl || isStale) {
-			await this.#hello();
-		}
+		if (this.#webhookUrl && !isStale) return true;
+
+		// Share a single in-flight provisioning run, so concurrent senders don't poll /hello in parallel
+		this.#provisioning ??= (async () => {
+			while (!(await this.#hello())) {
+				await sleep(CLAIM_POLL_INTERVAL);
+			}
+			return true;
+		})().finally(() => {
+			this.#provisioning = undefined;
+		});
+
+		return this.#provisioning;
 	};
 
 	/**

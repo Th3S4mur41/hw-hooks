@@ -20,9 +20,18 @@ Since HomeWizard devices API are only available within your local network, using
 > [!IMPORTANT]
 > hw-hooks no longer supports the legacy EnergyID webhook (URL + key). It now uses EnergyID's current [incoming webhook](https://help.energyid.eu/en/developer/incoming-webhooks/), which is claimed interactively on first run. The legacy webhook is being sunset by EnergyID on 30 September 2026.
 
-There is nothing to set up on the EnergyID website beforehand. Just run hw-hooks (see [Usage](#usage) below):
+There is nothing to install on the EnergyID website, but you need provisioning credentials before the first run:
 
-1. On first run, hw-hooks prints a claim URL and a claim code in the console.
+1. Open <https://app.energyid.eu/integrations/webhook-in>.
+2. In the **Provisioning credentials** box, click the **+** button in the top right corner.
+3. Copy the generated **key** and **secret** and pass them to hw-hooks as `--provisioning-key` and `--provisioning-secret` (see [Usage](#usage) below).
+
+> [!NOTE]
+> These two options are only needed on the first run. hw-hooks stores them in `config/config.jsonc` and reuses them on subsequent runs.
+
+On that first run, hw-hooks links the device to one of your records:
+
+1. hw-hooks prints a claim URL and a claim code in the console.
 2. Open the URL, select the record you want to link the device to (e.g.: Home), and enter the claim code.
 3. hw-hooks keeps polling until the device is claimed, then starts sending data.
 
@@ -39,23 +48,31 @@ You can either run the tool in the console using the NPM script or use the Docke
 Open a terminal/console and run the following script:
 
 ```sh
+npx hw-hooks --meter=<meter host or ip> --provisioning-key=<key> --provisioning-secret=<secret>
+```
+
+After the first run, the credentials are stored in `config/config.jsonc` and only `--meter` is required:
+
+```sh
 npx hw-hooks --meter=<meter host or ip> <options>
 ```
 
-The only required option is `--meter`. Everything else is optional: the device id/name/firmware version are read from the meter, and provisioning credentials are generated automatically if not provided. All of these, together with the claimed connection info, are persisted to `config/config.jsonc` so they're reused on subsequent runs.
+The device id/name/firmware version are read from the meter and are, together with the claimed connection info, persisted to `config/config.jsonc` so they're reused on subsequent runs.
 
 ### Options
 
 | Option                  | Alias            | Optional | Description                                                                            |
 | ----------------------- | ---------------- | -------- | -------------------------------------------------------------------------------------- |
 | `--meter`               | `-m` `-p` `--p1` | No       | The name or IP address of the Homewizard meter                                         |
-| `--provisioning-key`    | `-k`             | Yes      | EnergyID provisioning key (generated and stored if omitted)                            |
-| `--provisioning-secret` | `-s`             | Yes      | EnergyID provisioning secret (generated and stored if omitted)                         |
+| `--provisioning-key`    | `-k`             | Yes\*    | EnergyID provisioning key (required on first run, stored in config afterwards)         |
+| `--provisioning-secret` | `-s`             | Yes\*    | EnergyID provisioning secret (required on first run, stored in config afterwards)      |
 | `--offset`              | `-o`             | Yes      | Add an offset to the meter's value (to compensate for consumption before installation) |
 | `--dry-run`             | `-d`             | Yes      | Dry run. No data will be sent to EnergyID                                              |
 | `--recurring`           | `-r`             | Yes      | Read the meter every 5 minutes and send following EnergyID's upload interval           |
 | `--help`                | `-h`             | Yes      | Show help                                                                              |
 | `--version`             | `-v`             | Yes      | Show version number                                                                    |
+
+\* Required unless already stored in `config/config.jsonc` from a previous run.
 
 ### Docker
 
@@ -89,6 +106,8 @@ services:
     image: ghcr.io/th3s4mur41/hw-hooks
     environment:
       - meter=<the IP address of the Meter device>
+      - provisioning_key=<your EnergyID provisioning key>
+      - provisioning_secret=<your EnergyID provisioning secret>
     volumes:
       - ./config:/app/config
     network_mode: host
@@ -101,15 +120,17 @@ services:
 > If you are using a different DNS server, replace
 
 > [!IMPORTANT]  
-> Mount `./config:/app/config` so the container's generated provisioning credentials and claimed connection info survive restarts (otherwise the device has to be re-claimed on every restart). This also lets you edit `config/energyid-mapping.json` to customize which meter fields are sent to EnergyID.
+> Mount `./config:/app/config` so the provisioning credentials and claimed connection info survive restarts (otherwise the device has to be re-claimed on every restart). This also lets you edit `config/energyid-mapping.json` to customize which meter fields are sent to EnergyID.
 
 On first start, watch the container logs (`docker compose logs -f`) for the claim URL and code, as described in [Prerequisites](#prerequisites).
 
-| Environment Variable  | Optional | Description                                                    |
-| --------------------- | -------- | -------------------------------------------------------------- |
-| `meter`               | No       | The IP address of the Homewizard meter                         |
-| `provisioning_key`    | Yes      | EnergyID provisioning key (generated and stored if omitted)    |
-| `provisioning_secret` | Yes      | EnergyID provisioning secret (generated and stored if omitted) |
+| Environment Variable  | Optional | Description                                                                       |
+| --------------------- | -------- | --------------------------------------------------------------------------------- |
+| `meter`               | No       | The IP address of the Homewizard meter                                            |
+| `provisioning_key`    | Yes\*    | EnergyID provisioning key (required on first run, stored in config afterwards)    |
+| `provisioning_secret` | Yes\*    | EnergyID provisioning secret (required on first run, stored in config afterwards) |
+
+\* Required unless already stored in the mounted `config/config.jsonc` from a previous run.
 
 ## Examples
 

@@ -13,8 +13,13 @@ globalThis.fetch = vi.fn();
 /**
  * A minimal in-memory stand-in for Config, using flat dot-path keys (matching how EnergyIdWebhook calls it)
  */
-const createMockConfig = (initial = {}) => {
-	const store = { ...initial };
+const createMockConfig = (initial = {}, { withCredentials = true } = {}) => {
+	const store = {
+		...(withCredentials
+			? { "energyid.provisioningKey": "stored-key", "energyid.provisioningSecret": "stored-secret" }
+			: {}),
+		...initial,
+	};
 	return {
 		get: vi.fn((key, defaultValue) => (store[key] === undefined ? defaultValue : store[key])),
 		set: vi.fn((key, value) => {
@@ -65,29 +70,29 @@ describe("EnergyIdWebhook", () => {
 		vi.useRealTimers();
 	});
 
-	it("derives deviceId/deviceName/firmwareVersion from config's homewizard info", () => {
+	it("persists the provisioning credentials passed in", () => {
 		const config = createMockConfig({
 			"homewizard.serial": "SERIAL123",
 			"homewizard.name": "P1 meter",
 			"homewizard.firmwareVersion": "4.0.0",
 		});
 
-		new EnergyIdWebhook("TestEnergyId", { config }, mockMapping);
+		new EnergyIdWebhook(
+			"TestEnergyId",
+			{ config, provisioningKey: "my-key", provisioningSecret: "my-secret" },
+			mockMapping,
+		);
 
-		expect(config.set).toHaveBeenCalledWith("energyid.provisioningKey", "uuid-0");
-		expect(config.set).toHaveBeenCalledWith("energyid.provisioningSecret", "uuid-1");
+		expect(config.set).toHaveBeenCalledWith("energyid.provisioningKey", "my-key");
+		expect(config.set).toHaveBeenCalledWith("energyid.provisioningSecret", "my-secret");
 	});
 
-	it("generates provisioning credentials only when not already stored", () => {
-		const config = createMockConfig({
-			"homewizard.serial": "SERIAL123",
-			"energyid.provisioningKey": "stored-key",
-			"energyid.provisioningSecret": "stored-secret",
-		});
+	it("throws when no provisioning credentials are given or stored", () => {
+		const config = createMockConfig({ "homewizard.serial": "SERIAL123" }, { withCredentials: false });
 
-		new EnergyIdWebhook("TestEnergyId", { config }, mockMapping);
-
-		expect(randomUUID).not.toHaveBeenCalled();
+		expect(() => new EnergyIdWebhook("TestEnergyId", { config }, mockMapping)).toThrow(
+			/Missing EnergyID provisioning credentials/,
+		);
 	});
 
 	it("provisions the device (including firmwareVersion) and sends a single reading", async () => {
@@ -105,7 +110,10 @@ describe("EnergyIdWebhook", () => {
 
 		expect(fetch).toHaveBeenNthCalledWith(1, "https://hooks.energyid.eu/hello", {
 			method: "POST",
-			headers: expect.objectContaining({ "X-Provisioning-Key": "uuid-0", "X-Provisioning-Secret": "uuid-1" }),
+			headers: expect.objectContaining({
+				"X-Provisioning-Key": "stored-key",
+				"X-Provisioning-Secret": "stored-secret",
+			}),
 			body: JSON.stringify({ deviceId: "SERIAL123", deviceName: "P1 meter", firmwareVersion: "4.0.0" }),
 		});
 		expect(fetch).toHaveBeenNthCalledWith(2, mockConnectionResponse.webhookUrl, {
@@ -164,6 +172,36 @@ describe("EnergyIdWebhook", () => {
 
 		expect(fetch).toHaveBeenCalledTimes(3);
 		expect(result).toEqual({ exitCode: 0, message: "Data sent successfully" });
+	});
+
+	it("prints the claim instructions once and keeps polling silently", async () => {
+		vi.useFakeTimers();
+		const log = vi.spyOn(console, "log").mockImplementation(() => {});
+		fetch
+			.mockResolvedValueOnce({ ok: true, json: async () => mockClaimResponse })
+			.mockResolvedValueOnce({ ok: true, json: async () => mockClaimResponse })
+			.mockResolvedValueOnce({ ok: true, json: async () => mockConnectionResponse });
+		const config = createMockConfig();
+
+		const webhook = new EnergyIdWebhook("TestEnergyId", { config }, mockMapping);
+		const connectPromise = webhook.connect();
+
+		await vi.advanceTimersByTimeAsync(60_000);
+		await connectPromise;
+
+		const claimLogs = log.mock.calls.filter(([message]) => String(message).includes(mockClaimResponse.claimUrl));
+		expect(claimLogs).toHaveLength(1);
+		expect(webhook.isConnected).toBe(true);
+		log.mockRestore();
+	});
+
+	it("reports unusable provisioning credentials instead of polling", async () => {
+		fetch.mockResolvedValueOnce({ ok: false, status: 401, statusText: "Unauthorized" });
+		const config = createMockConfig();
+
+		const webhook = new EnergyIdWebhook("TestEnergyId", { config }, mockMapping);
+
+		await expect(webhook.connect()).rejects.toThrow(/Provisioning credentials rejected/);
 	});
 
 	it("re-provisions and retries once on 401", async () => {

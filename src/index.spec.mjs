@@ -44,6 +44,7 @@ describe("index", () => {
 			await execute(device, hook, cache);
 
 			expect(device.update).toHaveBeenCalledTimes(1);
+			expect(hook.connect).toHaveBeenCalled();
 			expect(cache.add).toHaveBeenCalledWith({ updated: "2026-08-28T00:00:00.000Z", value: 1 });
 			expect(hook.send).toHaveBeenCalledWith([{ updated: "2026-08-28T00:00:00.000Z", value: 1 }], false);
 			expect(cache.clear).toHaveBeenCalled();
@@ -70,7 +71,7 @@ describe("index", () => {
 			await schedule(device, hook, cache);
 
 			expect(device.update).toHaveBeenCalledTimes(1);
-			expect(hook.connect).toHaveBeenCalledTimes(1);
+			expect(hook.connect).toHaveBeenCalled();
 			expect(hook.send).toHaveBeenCalledTimes(1);
 
 			await vi.advanceTimersByTimeAsync(5 * 60 * 1000); // default read interval

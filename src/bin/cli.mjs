@@ -48,12 +48,12 @@ const yargsBin = yargs(hideBin(process.argv))
 	})
 	.option("k", {
 		alias: "provisioning-key",
-		description: "EnergyID provisioning key (optional, generated and stored in config/config.jsonc if omitted)",
+		description: "EnergyID provisioning key (required on first run, stored in config/config.jsonc afterwards)",
 		type: "string",
 	})
 	.option("s", {
 		alias: "provisioning-secret",
-		description: "EnergyID provisioning secret (optional, generated and stored if omitted)",
+		description: "EnergyID provisioning secret (required on first run, stored in config/config.jsonc afterwards)",
 		type: "string",
 	})
 	.option("r", {
@@ -109,16 +109,22 @@ console.log(`  Offset:   ${device.offset}`);
 console.log("");
 
 const cache = new ReadingCache(`${CONFIG_DIR}/.cache.json`);
-const hook = new EnergyIdWebhook(
-	"EnergyID",
-	{ config, provisioningKey: argv.provisioningKey, provisioningSecret: argv.provisioningSecret },
-	mapping,
-);
 
-if (argv.r) {
-	console.log(`Scheduling hw-hooks for ${argv.meter}`);
-	schedule(device, hook, cache);
-} else {
-	console.log(`Execute all hooks for ${argv.meter}`);
-	execute(device, hook, cache);
+try {
+	const hook = new EnergyIdWebhook(
+		"EnergyID",
+		{ config, provisioningKey: argv.provisioningKey, provisioningSecret: argv.provisioningSecret },
+		mapping,
+	);
+
+	if (argv.r) {
+		console.log(`Scheduling hw-hooks for ${argv.meter}`);
+		await schedule(device, hook, cache);
+	} else {
+		console.log(`Execute all hooks for ${argv.meter}`);
+		await execute(device, hook, cache);
+	}
+} catch (error) {
+	console.error(error.message);
+	process.exit(1);
 }
