@@ -8,10 +8,12 @@ describe("Webhook", () => {
 	const mockName = "TestWebhook";
 	const mockUrl = "https://example.com/webhook";
 	const mockMethod = "POST";
+	// biome-ignore-start lint/suspicious/noTemplateCurlyInString: intentional placeholder syntax for #formatData, not a template literal
 	const mockMapping = {
 		key1: "${value1}",
 		key2: "${value2}",
 	};
+	// biome-ignore-end lint/suspicious/noTemplateCurlyInString: intentional placeholder syntax for #formatData, not a template literal
 	const mockData = {
 		value1: "data1",
 		value2: "data2",

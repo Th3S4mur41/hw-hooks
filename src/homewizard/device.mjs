@@ -68,7 +68,7 @@ export class Device {
 				offset,
 			);
 		} catch (error) {
-			throw new Error(`Cannot initialize ${address}`);
+			throw new Error(`Cannot initialize ${address}`, { cause: error });
 		}
 	}
 
