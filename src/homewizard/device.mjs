@@ -97,6 +97,22 @@ export class Device {
 	}
 
 	/**
+	 * Getter for the apiVersion property
+	 * @returns {string} - The API version of the device
+	 */
+	get apiVersion() {
+		return this.#apiVersion;
+	}
+
+	/**
+	 * Getter for the address property
+	 * @returns {string} - The hostname or IP address of the device
+	 */
+	get address() {
+		return this.#address;
+	}
+
+	/**
 	 * Getter for the data property
 	 * @returns {Object} - The data of the device
 	 */

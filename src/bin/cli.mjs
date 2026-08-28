@@ -1,6 +1,8 @@
 #! /usr/bin/env node
 
 import * as fs from "node:fs";
+import * as path from "node:path";
+import { fileURLToPath } from "node:url";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 import { Config } from "../config/config.mjs";
@@ -18,6 +20,24 @@ const DEFAULT_MAPPING = {
 	total_power_export_t2_kwh: "el-i.t2",
 	total_liter_m3: "dw",
 };
+
+// Walk up from this file to find package.json: works both from src/bin (dev) and bin (build output)
+const readPackageJson = () => {
+	let dir = path.dirname(fileURLToPath(import.meta.url));
+	for (;;) {
+		const file = path.join(dir, "package.json");
+		if (fs.existsSync(file)) {
+			return JSON.parse(fs.readFileSync(file, "utf8"));
+		}
+		const parent = path.dirname(dir);
+		if (parent === dir) {
+			return {};
+		}
+		dir = parent;
+	}
+};
+
+const pkg = readPackageJson();
 
 const yargsBin = yargs(hideBin(process.argv))
 	.usage("$0 --meter <homewizard meter host or ip> [options]")
@@ -54,7 +74,7 @@ const yargsBin = yargs(hideBin(process.argv))
 	.demandCommand(0)
 	.help()
 	.alias("h", "help")
-	.version()
+	.version(pkg.version ?? "unknown")
 	.alias("v", "version");
 
 const argv = yargsBin.argv;
@@ -64,7 +84,7 @@ if (!argv.meter) {
 	process.exit(1);
 }
 
-console.log(`${process.env.npm_package_name} ${process.env.npm_package_version}`);
+console.log(`${pkg.name ?? "hw-hooks"} ${pkg.version ?? "unknown"}`);
 console.log("");
 
 setDryRun(argv.d);
@@ -78,6 +98,16 @@ const mapping = JSON.parse(fs.readFileSync(MAPPING_FILE, "utf8"));
 
 const config = new Config(`${CONFIG_DIR}/config.jsonc`);
 const device = await Device.init(argv.meter, argv.offset, config);
+
+console.log("HomeWizard device:");
+console.log(`  Name:     ${device.name}`);
+console.log(`  Serial:   ${device.serial}`);
+console.log(`  Firmware: ${device.firmwareVersion}`);
+console.log(`  API:      ${device.apiVersion}`);
+console.log(`  Address:  ${device.address}`);
+console.log(`  Offset:   ${device.offset}`);
+console.log("");
+
 const cache = new ReadingCache(`${CONFIG_DIR}/.cache.json`);
 const hook = new EnergyIdWebhook(
 	"EnergyID",

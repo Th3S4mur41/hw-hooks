@@ -20,9 +20,9 @@
 	},
 	"type": "module",
 	"main": "index.mjs",
-	"files": ["config/"],
+	"files": ["bin/", "index.mjs"],
 	"bin": {
-		"hw-hooks ": "bin/cli.mjs"
+		"hw-hooks": "bin/cli.mjs"
 	},
 	"scripts": {
 		"clean": "npx rimraf dist bin coverage && git clean -Xf",
