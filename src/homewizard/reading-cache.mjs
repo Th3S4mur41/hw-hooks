@@ -52,12 +52,21 @@ export class ReadingCache {
 	}
 
 	/**
-	 * Add a reading to the cache and persist it
+	 * Add a reading to the cache and persist it. The reading is sanitized first, so only a timestamp and
+	 * finite numeric meter values are ever written to disk
 	 * @param {Object} reading - The reading to cache
+	 * @returns {boolean} - False when the reading was rejected as invalid
 	 */
 	add = (reading) => {
-		this.#readings.push(reading);
+		const sanitized = sanitizeReading(reading);
+		if (!sanitized) {
+			console.warn("[ReadingCache] Ignoring invalid reading");
+			return false;
+		}
+
+		this.#readings.push(sanitized);
 		this.#save();
+		return true;
 	};
 
 	/**

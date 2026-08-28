@@ -54,6 +54,34 @@ describe("ReadingCache", () => {
 		);
 	});
 
+	it("strips unexpected fields before persisting a reading", () => {
+		fs.readFileSync.mockImplementation(() => {
+			throw Object.assign(new Error("ENOENT"), { code: "ENOENT" });
+		});
+		const cache = new ReadingCache(CACHE_FILE);
+
+		const added = cache.add({
+			updated: "2026-08-28T00:05:00.000Z",
+			value: 2,
+			wifi_ssid: "my-network",
+			external: [{ unique_id: "abc" }],
+		});
+
+		expect(added).toBe(true);
+		expect(cache.all).toEqual([{ updated: "2026-08-28T00:05:00.000Z", value: 2 }]);
+	});
+
+	it("rejects a reading without a usable timestamp", () => {
+		fs.readFileSync.mockImplementation(() => {
+			throw Object.assign(new Error("ENOENT"), { code: "ENOENT" });
+		});
+		const cache = new ReadingCache(CACHE_FILE);
+
+		expect(cache.add({ value: 2 })).toBe(false);
+		expect(cache.all).toEqual([]);
+		expect(fs.writeFileSync).not.toHaveBeenCalled();
+	});
+
 	it("removes only the sent readings, keeping readings added while sending", () => {
 		fs.readFileSync.mockReturnValue(
 			JSON.stringify([
