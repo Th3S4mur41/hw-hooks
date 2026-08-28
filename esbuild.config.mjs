@@ -20,7 +20,8 @@ esbuild
 		entryPoints: [{ out: "bin/cli", in: "src/bin/cli.mjs" }],
 		outdir: ".",
 		outExtension: { ".js": ".mjs" },
-		bundle: false,
+		bundle: true,
+		packages: "external", // keep runtime dependencies (yargs) external, only inline our own modules
 		platform: "node",
 		format: "esm",
 		minify: true,
