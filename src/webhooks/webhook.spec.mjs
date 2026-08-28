@@ -61,6 +61,16 @@ describe("Webhook", () => {
 		expect(result).toEqual({ exitCode: 0, message: "Data sent successfully" });
 	});
 
+	it("should not send an empty payload", async () => {
+		const webhook = new Webhook(mockName, mockUrl, mockMethod, mockMapping);
+		vi.spyOn(webhook, "_buildPayload").mockReturnValue({});
+
+		const result = await webhook.send(mockData);
+
+		expect(fetch).not.toHaveBeenCalled();
+		expect(result).toEqual({ exitCode: 1, message: "No data matching the mapping. Skipping send." });
+	});
+
 	it("should handle data sending failure", async () => {
 		fetch.mockResolvedValueOnce({
 			ok: false,

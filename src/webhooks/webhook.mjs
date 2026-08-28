@@ -14,6 +14,14 @@ export const SEND_RESULT = {
 	SKIPPED: 2,
 };
 
+/**
+ * Whether there is nothing worth sending: no payload at all, or an object/array without entries
+ * @param {*} payload - The payload returned by `_buildPayload`
+ * @returns {boolean} - True when the payload carries no data
+ */
+const isEmptyPayload = (payload) =>
+	payload === undefined || payload === null || (typeof payload === "object" && Object.keys(payload).length === 0);
+
 export class Webhook {
 	#name;
 	#url;
@@ -166,8 +174,7 @@ export class Webhook {
 	send = async (data = "", dryRun = false) => {
 		const jsonData = await this._buildPayload(data);
 
-		// Check if jsonData is an empty object
-		if (!jsonData) {
+		if (isEmptyPayload(jsonData)) {
 			console.warn(`[${this.#name}] No data matching the mapping. Skipping send.`);
 			return { exitCode: SEND_RESULT.ERROR, message: "No data matching the mapping. Skipping send." };
 		}
