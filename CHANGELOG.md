@@ -7,6 +7,29 @@
 ### Bug Fixes
 
 * add missing cli script ([9555c12](https://github.com/Th3S4mur41/hw-hooks/commit/9555c125b38e41a8a05375a67c5a13d4cbba8af0))
+
+## [1.3.22](https://github.com/Th3S4mur41/hw-hooks/compare/v1.3.21...v1.3.22) (2025-01-02)
+
+### Bug Fixes
+
+* **attest:** get the correct image name from package.json ([05feffb](https://github.com/Th3S4mur41/hw-hooks/commit/05feffb2ee322104093da3fa5b0bd28f5026e30e))
+
+## [1.3.21](https://github.com/Th3S4mur41/hw-hooks/compare/v1.3.20...v1.3.21) (2025-01-02)
+
+### Bug Fixes
+
+* update digest format for docker attestation ([d3af611](https://github.com/Th3S4mur41/hw-hooks/commit/d3af611559d0a91ec6ea6570460099a2887b2524))
+
+## [1.3.20](https://github.com/Th3S4mur41/hw-hooks/compare/v1.3.19...v1.3.20) (2025-01-02)
+
+### Bug Fixes
+
+* attest docker image build provenance ([21e7297](https://github.com/Th3S4mur41/hw-hooks/commit/21e7297428b0ec3752c6a063d1478fbf6b8370cc))
+
+## [1.3.19](https://github.com/Th3S4mur41/hw-hooks/compare/v1.3.18...v1.3.19) (2024-10-25)
+
+### Bug Fixes
+
 * update github refs to new repo name ([4d93b89](https://github.com/Th3S4mur41/hw-hooks/commit/4d93b8960042de533f0cf7f30518c71086956a8f))
 
 ### Dependencies and Other Build Updates

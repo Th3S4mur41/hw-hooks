@@ -2,7 +2,15 @@
 	"name": "hw-hooks",
 	"version": "2.0.0-alpha.2",
 	"description": "A tool to synchronize data from HomeWizard to EnergyID",
-	"keywords": ["homewizard", "homewizard-energy", "homewizard-p1-meter", "energyid", "sync", "api", "webhook"],
+	"keywords": [
+		"homewizard",
+		"homewizard-energy",
+		"homewizard-p1-meter",
+		"energyid",
+		"sync",
+		"api",
+		"webhook"
+	],
 	"author": "Michaël Vanderheyden <hello@th3s4mur41.me> (https://th3s4mur41.me)",
 	"license": "MIT",
 	"homepage": "https://github.com/Th3S4mur41/hw-hooks",
@@ -38,23 +46,23 @@
 		"test": "vitest run --coverage"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "1.9.4",
-		"@codedependant/semantic-release-docker": "^5.0.3",
-		"@commitlint/cli": "^19.0.3",
-		"@commitlint/config-conventional": "^19.0.0",
-		"@semantic-release/changelog": "^6.0.3",
-		"@semantic-release/git": "^10.0.1",
+		"@biomejs/biome": "2.5.10",
+		"@codedependant/semantic-release-docker": "^7.0.0",
+		"@commitlint/cli": "^21.0.0",
+		"@commitlint/config-conventional": "^21.0.0",
+		"@semantic-release/changelog": "^7.0.0",
+		"@semantic-release/git": "^11.0.1",
 		"@vitest/coverage-v8": "^2.1.1",
 		"esbuild": "^0.24.0",
 		"husky": "^9.0.5",
-		"lint-staged": "^15.0.1",
+		"lint-staged": "^17.0.2",
 		"prettier": "^3.0.0",
-		"semantic-release": "^24.0.0",
+		"semantic-release": "^25.0.0",
 		"vitest": "^2.1.1"
 	},
 	"dependencies": {
-		"node-cron": "^3.0.2",
-		"yargs": "^17.7.1"
+		"node-cron": "^4.0.3",
+		"yargs": "^18.0.0"
 	},
 	"overrides": {
 		"conventional-changelog-conventionalcommits": ">= 8.0.0"
