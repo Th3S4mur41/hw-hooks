@@ -1,8 +1,7 @@
 /**
- * Device class
+ * Device class - reads data from a HomeWizard device. Sending that data onward (e.g. to EnergyID)
+ * is handled independently by the caller (see src/index.mjs), so Device only deals with reading.
  */
-
-import { Webhook } from "../webhooks/webhook.mjs";
 
 const PROTOCOL = "http"; // Protocol used for API requests
 const PRIVATE_CONSTRUCTOR_KEY = Symbol("private"); // Symbol to enforce private constructor
@@ -16,7 +15,8 @@ export class Device {
 	#offset;
 	#data = {};
 	#updated = new Date(0);
-	#hooks = new Set(); /**
+
+	/**
 	 * Private constructor to enforce the use of the init method
 	 * @param {string} key - Private key to enforce private constructor
 	 * @param {string} name - Name of the device
@@ -36,19 +36,27 @@ export class Device {
 		this.#apiVersion = apiVersion;
 		this.#address = address;
 		this.#offset = offset;
-	} /**
-	 * Initialize a new Device instance
+	}
+
+	/**
+	 * Initialize a new Device instance. When a Config is provided, the device's identity
+	 * (name/serial/firmwareVersion) is persisted so it can be reused elsewhere (e.g. by the EnergyID webhook)
 	 * @param {string} address - Address of the device
 	 * @param {number} offset - [optional] Offset value for the device (Default: 0)
+	 * @param {import("../config/config.mjs").Config} [config] - Config instance to persist device metadata to
 	 * @returns {Promise<Device>} - A promise that resolves to a new Device instance
 	 */
-	static async init(address, offset = 0) {
+	static async init(address, offset = 0, config = undefined) {
 		try {
 			const response = await fetch(`${PROTOCOL}://${address}/api/`);
 			if (!response.ok) {
 				throw new Error(`Cannot initialize ${address}`);
 			}
 			const data = await response.json();
+
+			config?.set("homewizard.name", data.product_name);
+			config?.set("homewizard.serial", data.serial);
+			config?.set("homewizard.firmwareVersion", data.firmware_version);
 
 			return new Device(
 				PRIVATE_CONSTRUCTOR_KEY,
@@ -62,6 +70,30 @@ export class Device {
 		} catch (error) {
 			throw new Error(`Cannot initialize ${address}`);
 		}
+	}
+
+	/**
+	 * Getter for the name property
+	 * @returns {string} - The product name of the device
+	 */
+	get name() {
+		return this.#name;
+	}
+
+	/**
+	 * Getter for the serial property
+	 * @returns {string} - The serial number of the device
+	 */
+	get serial() {
+		return this.#serial;
+	}
+
+	/**
+	 * Getter for the firmwareVersion property
+	 * @returns {string} - The firmware version of the device
+	 */
+	get firmwareVersion() {
+		return this.#firmwareVersion;
 	}
 
 	/**
@@ -89,14 +121,6 @@ export class Device {
 			throw new TypeError("Offset must be a number");
 		}
 		this.#offset = newOffset;
-	}
-
-	/**
-	 * Getter for the hooks property
-	 * @returns {Set<Webhook>} - The hooks of the device
-	 */
-	get hooks() {
-		return this.#hooks;
 	}
 
 	/**
@@ -136,40 +160,6 @@ export class Device {
 			.catch((error) => {
 				console.error(`${this.#address} cannot update data from ${this.apiUrl}`);
 			});
-	}; /**
-	 * Add a hook instance to the device
-	 * @param {Webhook} hook
-	 * @returns
-	 */
-	addHook = (hook) => {
-		console.log(`hook: ${hook.url}`);
-
-		if (!(hook instanceof Webhook)) {
-			return { exitCode: 1, message: "Invalid hook" };
-		}
-
-		if (this.#hooks.has(hook)) {
-			return { exitCode: 2, message: "Hook already added" };
-		}
-
-		this.log(`Adding hook ${hook.name} to ${hook.url} ...`);
-		this.#hooks.add(hook);
-		return { exitCode: 0, message: `Hook ${hook.name} added` };
-	};
-
-	/**
-	 * Send data for all hooks
-	 * @param {boolean} dryRun - If true, log the data instead of sending it
-	 */
-	sync = (dryRun) => {
-		this.update();
-
-		setTimeout(() => {
-			// Account for time discrepensies between local system and server
-			for (const hook of this.#hooks) {
-				hook.send(this.#data, dryRun);
-			}
-		}, 5000);
 	};
 
 	/**

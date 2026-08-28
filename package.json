@@ -53,7 +53,6 @@
 		"vitest": "^2.1.1"
 	},
 	"dependencies": {
-		"node-cron": "^3.0.2",
 		"yargs": "^17.7.1"
 	},
 	"overrides": {

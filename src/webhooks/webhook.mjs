@@ -66,6 +66,30 @@ export class Webhook {
 	}
 
 	/**
+	 * Getter for the mapping property
+	 * @returns {Object} - The mapping of the webhook
+	 */
+	get mapping() {
+		return this.#mapping;
+	}
+
+	/**
+	 * Getter for the callInterval property
+	 * @returns {number} - The call interval in seconds
+	 */
+	get callInterval() {
+		return this.#callInterval;
+	}
+
+	/**
+	 * Setter for the callInterval property, so subclasses can adjust throttling once a remote policy is known
+	 * @param {number} seconds - The new call interval in seconds
+	 */
+	set callInterval(seconds) {
+		this.#callInterval = seconds;
+	}
+
+	/**
 	 * Format the data according to the mapping
 	 * @param {Object} data - The data to be formatted
 	 * @returns {Object} - The formatted data
@@ -85,12 +109,45 @@ export class Webhook {
 	};
 
 	/**
+	 * Build the request payload for the given data. Override in subclasses to customize the payload shape.
+	 * @param {Object} data - The data to be formatted
+	 * @returns {Object|undefined} - The payload to send, or undefined to skip sending
+	 */
+	_buildPayload(data) {
+		return this.#formatData(data);
+	}
+
+	/**
+	 * Resolve the URL to send the request to. Override in subclasses for dynamic URLs.
+	 * @returns {Promise<string>|string} - The URL to send the request to
+	 */
+	_getUrl() {
+		return this.#url;
+	}
+
+	/**
+	 * Resolve the headers to send with the request. Override in subclasses to add/replace headers.
+	 * @returns {Promise<Object>|Object} - The headers to send with the request
+	 */
+	_getHeaders() {
+		return {
+			Accept: "application/json",
+			"Content-Type": "application/json",
+		};
+	}
+
+	/**
+	 * Called when the server responds with 401 Unauthorized, before a single retry. No-op by default.
+	 */
+	async _onUnauthorized() {}
+
+	/**
 	 * Send the data to the webhook URL
 	 * @param {Object} data - The data to be sent
 	 * @param {boolean} dryRun - If true, log the data instead of sending it
 	 */
 	send = async (data = "", dryRun = false) => {
-		const jsonData = this.#formatData(data);
+		const jsonData = await this._buildPayload(data);
 
 		// Check if jsonData is an empty object
 		if (!jsonData) {
@@ -112,15 +169,18 @@ export class Webhook {
 		console.log(`[${this.#name}] Sending ${JSON.stringify(jsonData)}...`);
 
 		try {
-			const response = await fetch(this.#url, {
-				method: this.#method,
-				headers: {
-					Accept: "application/json",
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify(jsonData),
-			});
-			if (!response.ok) {
+			const response = await this.#request(jsonData);
+			if (response.status === 401) {
+				await this._onUnauthorized();
+				const retryResponse = await this.#request(jsonData);
+				if (!retryResponse.ok) {
+					throw new Error(`Failed to send data: ${retryResponse.statusText}`);
+				}
+			} else if (response.status === 429) {
+				const retryAfter = response.headers.get("Retry-After");
+				console.warn(`[${this.#name}] Rate limited. Retry after ${retryAfter}s`);
+				return { exitCode: 1, message: `Rate limited. Retry after ${retryAfter}s` };
+			} else if (!response.ok) {
 				throw new Error(`Failed to send data: ${response.statusText}`);
 			}
 			console.log(`[${this.#name}] Data sent successfully`);
@@ -131,5 +191,19 @@ export class Webhook {
 
 		this.#synchronized = now;
 		return { exitCode: 0, message: "Data sent successfully" };
+	};
+
+	/**
+	 * Issue the actual HTTP request, resolving URL/headers on each attempt to support dynamic values
+	 * @param {Object} jsonData - The payload to send
+	 */
+	#request = async (jsonData) => {
+		const url = await this._getUrl();
+		const headers = await this._getHeaders();
+		return fetch(url, {
+			method: this.#method,
+			headers,
+			body: JSON.stringify(jsonData),
+		});
 	};
 }

@@ -3,27 +3,42 @@
 import * as fs from "node:fs";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
+import { Config } from "../config/config.mjs";
+import { Device } from "../homewizard/device.mjs";
+import { ReadingCache } from "../homewizard/reading-cache.mjs";
 import { execute, schedule, setDryRun } from "../index.mjs";
-import { Webhook } from "../webhooks/webhook.mjs";
+import { EnergyIdWebhook } from "../webhooks/energyid.mjs";
 
-// TODO: check node-cron for recursive solution
-// https://www.npmjs.com/package/node-cron
+const CONFIG_DIR = "./config";
+const MAPPING_FILE = `${CONFIG_DIR}/energyid-mapping.json`;
+const DEFAULT_MAPPING = {
+	total_power_import_t1_kwh: "el.t1",
+	total_power_import_t2_kwh: "el.t2",
+	total_power_export_t1_kwh: "el-i.t1",
+	total_power_export_t2_kwh: "el-i.t2",
+	total_liter_m3: "dw",
+};
 
 const yargsBin = yargs(hideBin(process.argv))
-	.usage("$0--energyid <energyid webhook>  --meter <homewizard meter host or ip> [options]")
-	.option("e", {
-		alias: "energyid",
-		description: "URL of the EnergyId Webhook",
-		type: "string",
-	})
+	.usage("$0 --meter <homewizard meter host or ip> [options]")
 	.option("m", {
 		alias: ["meter", "p", "p1"],
 		description: "Hostname or IP address of the HomeWizard meter",
 		type: "string",
 	})
+	.option("k", {
+		alias: "provisioning-key",
+		description: "EnergyID provisioning key (optional, generated and stored in config/config.jsonc if omitted)",
+		type: "string",
+	})
+	.option("s", {
+		alias: "provisioning-secret",
+		description: "EnergyID provisioning secret (optional, generated and stored if omitted)",
+		type: "string",
+	})
 	.option("r", {
 		alias: "recurring",
-		description: "Run the task every hour",
+		description: "Run recurring: read the meter every 5 minutes and send following EnergyID's upload interval",
 		type: "boolean",
 	})
 	.option("o", {
@@ -44,7 +59,7 @@ const yargsBin = yargs(hideBin(process.argv))
 
 const argv = yargsBin.argv;
 
-if (!(argv.meter && argv.energyid)) {
+if (!argv.meter) {
 	yargsBin.showHelp("log");
 	process.exit(1);
 }
@@ -54,19 +69,26 @@ console.log("");
 
 setDryRun(argv.d);
 
-// import mappings.json
-const mappings = JSON.parse(fs.readFileSync("./config/mappings.json", "utf8"));
-
-const hooks = [];
-for (const key in mappings) {
-	const webhook = new Webhook(key, argv.energyid, "POST", mappings[key]);
-	hooks.push(webhook);
+// Ensure the config folder and default mapping file exist so users can inspect/customize them
+fs.mkdirSync(CONFIG_DIR, { recursive: true });
+if (!fs.existsSync(MAPPING_FILE)) {
+	fs.writeFileSync(MAPPING_FILE, JSON.stringify(DEFAULT_MAPPING, null, 2));
 }
+const mapping = JSON.parse(fs.readFileSync(MAPPING_FILE, "utf8"));
+
+const config = new Config(`${CONFIG_DIR}/config.jsonc`);
+const device = await Device.init(argv.meter, argv.offset, config);
+const cache = new ReadingCache(`${CONFIG_DIR}/.cache.json`);
+const hook = new EnergyIdWebhook(
+	"EnergyID",
+	{ config, provisioningKey: argv.provisioningKey, provisioningSecret: argv.provisioningSecret },
+	mapping,
+);
 
 if (argv.r) {
-	console.log("Scheduling hw-hooks to run every hour");
-	schedule(argv.meter, hooks, argv.offset);
+	console.log(`Scheduling hw-hooks for ${argv.meter}`);
+	schedule(device, hook, cache);
 } else {
 	console.log(`Execute all hooks for ${argv.meter}`);
-	execute(argv.meter, hooks, argv.offset);
+	execute(device, hook, cache);
 }

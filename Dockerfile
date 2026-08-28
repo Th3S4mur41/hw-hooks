@@ -11,9 +11,11 @@ RUN npm ci
  
 COPY . .
  
-ENV energyid ''
+ENV meter ''
 # p1 is deprecated, use meter instead
 ENV p1 ''
 ENV meter ${p1}
+ENV provisioning_key ''
+ENV provisioning_secret ''
 
-CMD npx hw-hooks --energyid=${energyid} --meter=${meter} -r
+CMD npx hw-hooks --meter=${meter} --provisioning-key=${provisioning_key} --provisioning-secret=${provisioning_secret} -r
