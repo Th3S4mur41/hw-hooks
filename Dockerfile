@@ -14,7 +14,6 @@ COPY . .
 ENV meter=""
 # p1 is deprecated, use meter instead
 ENV p1=""
-ENV provisioning_key=""
-ENV provisioning_secret=""
 
-CMD ["sh", "-c", "exec npx hw-hooks --meter=\"${meter:-$p1}\" --provisioning-key=\"${provisioning_key}\" --provisioning-secret=\"${provisioning_secret}\" -r"]
+# Provisioning credentials are read at runtime from /run/secrets, never from a build argument or ENV
+CMD ["npx", "hw-hooks", "-r"]

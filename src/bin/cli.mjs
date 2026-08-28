@@ -21,6 +21,28 @@ const DEFAULT_MAPPING = {
 	total_liter_m3: "dw",
 };
 const MAPPING_KEY_PATTERN = /^[a-z0-9_-]+(\.[a-z0-9_-]+)*$/i;
+const SECRETS_DIR = "/run/secrets";
+
+/**
+ * Resolve a credential from the CLI option, a Docker secret (`<name>_FILE` or /run/secrets/<name>) or the
+ * environment, so secrets never have to be passed as arguments or baked into an image
+ * @param {string|undefined} option - The value passed on the command line
+ * @param {string} name - The credential name, e.g. "provisioning_key"
+ * @returns {string|undefined} - The resolved credential
+ */
+const readCredential = (option, name) => {
+	if (option) return option;
+
+	const secretFile = process.env[`${name}_FILE`] || path.join(SECRETS_DIR, name);
+	try {
+		const secret = fs.readFileSync(secretFile, "utf8").trim();
+		if (secret) return secret;
+	} catch (error) {
+		if (error.code !== "ENOENT") throw error;
+	}
+
+	return process.env[name] || undefined;
+};
 
 // Walk up from this file to find package.json: works both from src/bin (dev) and bin (build output)
 const readPackageJson = () => {
@@ -69,12 +91,14 @@ const yargsBin = yargs(hideBin(process.argv))
 	})
 	.option("k", {
 		alias: "provisioning-key",
-		description: "EnergyID provisioning key (required on first run, stored in config/config.jsonc afterwards)",
+		description:
+			"EnergyID provisioning key (required on first run, stored in config/config.jsonc afterwards). Can also be provided as a Docker secret or the provisioning_key environment variable",
 		type: "string",
 	})
 	.option("s", {
 		alias: "provisioning-secret",
-		description: "EnergyID provisioning secret (required on first run, stored in config/config.jsonc afterwards)",
+		description:
+			"EnergyID provisioning secret (required on first run, stored in config/config.jsonc afterwards). Can also be provided as a Docker secret or the provisioning_secret environment variable",
 		type: "string",
 	})
 	.option("r", {
@@ -100,7 +124,11 @@ const yargsBin = yargs(hideBin(process.argv))
 
 const argv = yargsBin.argv;
 
-if (!argv.meter) {
+const meter = argv.meter || process.env.meter || process.env.p1; // p1 is the deprecated name of the meter variable
+const provisioningKey = readCredential(argv.provisioningKey, "provisioning_key");
+const provisioningSecret = readCredential(argv.provisioningSecret, "provisioning_secret");
+
+if (!meter) {
 	yargsBin.showHelp("log");
 	process.exit(1);
 }
@@ -121,7 +149,7 @@ try {
 const mapping = readMapping();
 
 const config = new Config(`${CONFIG_DIR}/config.jsonc`);
-const device = await Device.init(argv.meter, argv.offset, config);
+const device = await Device.init(meter, argv.offset, config);
 
 console.log("HomeWizard device:");
 console.log(`  Name:     ${device.name}`);
@@ -135,17 +163,13 @@ console.log("");
 const cache = new ReadingCache(`${CONFIG_DIR}/.cache.json`);
 
 try {
-	const hook = new EnergyIdWebhook(
-		"EnergyID",
-		{ config, provisioningKey: argv.provisioningKey, provisioningSecret: argv.provisioningSecret },
-		mapping,
-	);
+	const hook = new EnergyIdWebhook("EnergyID", { config, provisioningKey, provisioningSecret }, mapping);
 
 	if (argv.r) {
-		console.log(`Scheduling hw-hooks for ${argv.meter}`);
+		console.log(`Scheduling hw-hooks for ${meter}`);
 		await schedule(device, hook, cache);
 	} else {
-		console.log(`Execute all hooks for ${argv.meter}`);
+		console.log(`Execute all hooks for ${meter}`);
 		await execute(device, hook, cache);
 	}
 } catch (error) {
