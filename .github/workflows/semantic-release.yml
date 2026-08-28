@@ -6,8 +6,6 @@ on:
   # Allows you to call this workflow from other workflows
   workflow_call:
     secrets:
-      NPM_TOKEN:
-        required: false
       GH_TOKEN:
         required: false
     outputs:
@@ -25,6 +23,7 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
+      attestations: write
       contents: write
       issues: write
       pull-requests: write
@@ -40,18 +39,19 @@ jobs:
 
     steps:
       - name: '☁️ Checkout repository'
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.workflow_run.head_branch || github.base_ref }}
           fetch-depth: 0
           persist-credentials: false
 
       - name: '⚙️ Use Node.js'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: '.nvmrc'
           check-latest: true
           cache: 'npm'
+          registry-url: 'https://registry.npmjs.org'
 
       - name: '⛓️ Install dependencies'
         env:
@@ -63,10 +63,19 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_TOKEN: ${{ secrets.GH_TOKEN || secrets.GITHUB_TOKEN }} # Needed to push to GitHub
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }} # Needed to publish to NPM registry
           DOCKER_REGISTRY_USER: ${{ github.actor }}
           DOCKER_REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
           HUSKY: 0 # disable pre-commit hooks
         run: |
           npm run release
           echo "version=$(npm run env | grep npm_package_version | cut -d '=' -f 2)" >> $GITHUB_OUTPUT
+          echo "package_name=$(npm run env | grep npm_package_name | cut -d '=' -f 2)" >> $GITHUB_OUTPUT
+
+      - name: '✍️ Attest'
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        id: attest
+        if: steps.npm-release.outputs.docker_image_sha_long != ''
+        with:
+          subject-name: ghcr.io/${{ github.repository_owner }}/${{ steps.npm-release.outputs.package_name }}
+          subject-digest: sha256:${{ steps.npm-release.outputs.docker_image_sha_long }}
+          push-to-registry: true

@@ -38,22 +38,22 @@
 		"test": "vitest run --coverage"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "1.9.4",
-		"@codedependant/semantic-release-docker": "^5.0.3",
-		"@commitlint/cli": "^19.0.3",
-		"@commitlint/config-conventional": "^19.0.0",
-		"@semantic-release/changelog": "^6.0.3",
-		"@semantic-release/git": "^10.0.1",
+		"@biomejs/biome": "2.5.10",
+		"@codedependant/semantic-release-docker": "^7.0.0",
+		"@commitlint/cli": "^21.0.0",
+		"@commitlint/config-conventional": "^21.0.0",
+		"@semantic-release/changelog": "^7.0.0",
+		"@semantic-release/git": "^11.0.1",
 		"@vitest/coverage-v8": "^2.1.1",
 		"esbuild": "^0.24.0",
 		"husky": "^9.0.5",
-		"lint-staged": "^15.0.1",
+		"lint-staged": "^17.0.2",
 		"prettier": "^3.0.0",
-		"semantic-release": "^24.0.0",
+		"semantic-release": "^25.0.0",
 		"vitest": "^2.1.1"
 	},
 	"dependencies": {
-		"yargs": "^17.7.1"
+		"yargs": "^18.0.0"
 	},
 	"overrides": {
 		"conventional-changelog-conventionalcommits": ">= 8.0.0"
