@@ -174,7 +174,7 @@ export class Device {
 				return data;
 			})
 			.catch((error) => {
-				console.error(`${this.#address} cannot update data from ${this.apiUrl}`);
+				console.error(`${this.#address} cannot update data from ${this.url}`);
 			});
 	};
 

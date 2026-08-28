@@ -206,10 +206,18 @@ export class Webhook {
 	#request = async (jsonData) => {
 		const url = await this._getUrl();
 		const headers = await this._getHeaders();
-		return fetch(url, {
-			method: this.#method,
-			headers,
-			body: JSON.stringify(jsonData),
-		});
+		return fetch(
+			url,
+			(() => {
+				const init = {
+					method: this.#method,
+					headers,
+				};
+				if (this.#method !== "GET" && this.#method !== "HEAD") {
+					init.body = JSON.stringify(jsonData);
+				}
+				return init;
+			})(),
+		);
 	};
 }

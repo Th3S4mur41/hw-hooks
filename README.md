@@ -9,7 +9,7 @@
 
 ![](./docs/logo.jpg)
 
-**hw-hooks** previously known as [hw2energyid](https://www.npmjs.com/package/hw2energyid) is small tool that triggers webhooks based on data gathered from [HomeWizard](https://www.homewizard.com/) devices to synchonize your data with your r[EnergyID](https://app.energyid.eu/) dashboard.
+**hw-hooks** previously known as [hw2energyid](https://www.npmjs.com/package/hw2energyid) is small tool that triggers webhooks based on data gathered from [HomeWizard](https://www.homewizard.com/) devices to synchronize your data with your [EnergyID](https://app.energyid.eu/) dashboard.
 Since HomeWizard devices API are only available within your local network, using an [EnergyID App](https://app.energyid.eu/integrations) to synchronize the data is not possible.  
 **hw-hooks** helps bridge the gap by reading the data from your local network and sending them to EnergyId.
 

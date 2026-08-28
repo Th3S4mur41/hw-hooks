@@ -51,7 +51,12 @@ export class ReadingCache {
 	 */
 	#load = () => {
 		try {
-			return JSON.parse(fs.readFileSync(this.#filePath, "utf8"));
+			const parsed = JSON.parse(fs.readFileSync(this.#filePath, "utf8"));
+			if (!Array.isArray(parsed)) {
+				console.warn(`[ReadingCache] Ignoring invalid cache format at ${this.#filePath} (expected an array)`);
+				return [];
+			}
+			return parsed;
 		} catch (error) {
 			if (error.code !== "ENOENT") {
 				console.warn(`[ReadingCache] Ignoring unreadable cache at ${this.#filePath}: ${error.message}`);

@@ -116,7 +116,11 @@ export class EnergyIdWebhook extends Webhook {
 	 */
 	#startHelloRefreshTimer = () => {
 		if (this.#helloTimer) return;
-		this.#helloTimer = setInterval(() => this.#ensureProvisioned(), HELLO_REFRESH_INTERVAL);
+		this.#helloTimer = setInterval(() => {
+			void this.#ensureProvisioned().catch((error) =>
+				console.error(`[${this.name}] Failed to refresh EnergyID connection: ${error.message}`),
+			);
+		}, HELLO_REFRESH_INTERVAL);
 		this.#helloTimer.unref?.();
 	};
 
@@ -247,7 +251,7 @@ export class EnergyIdWebhook extends Webhook {
 	 */
 	_getHeaders = async () => {
 		await this.#ensureProvisioned();
-		return { ...this.#headers, "Content-Type": "application/json" };
+		return { ...(this.#headers ?? {}), "Content-Type": "application/json" };
 	};
 
 	/**
