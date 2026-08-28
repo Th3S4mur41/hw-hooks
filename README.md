@@ -132,9 +132,6 @@ printf '%s' '<your EnergyID provisioning secret>' > secrets/provisioning_secret
 ```
 
 > [!NOTE]
-> The credentials are never baked into the image and are never passed as command line arguments. hw-hooks reads them from `/run/secrets/<name>`, from a `<name>_FILE` path, or from an environment variable of the same name, in that order of preference. Once the device is claimed you can drop the `secrets` section.
-
-> **Note**  
 > The `dns` section is required to resolve the EnergyID webhook URL.
 > If you are using a different DNS server, replace
 
