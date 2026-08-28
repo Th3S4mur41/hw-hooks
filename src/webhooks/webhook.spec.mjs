@@ -99,7 +99,7 @@ describe("Webhook", () => {
 				key2: "data2",
 			})}...`,
 		);
-		expect(result).toEqual({ exitCode: 0, message: "" });
+		expect(result).toEqual({ exitCode: 2, message: "Dry run. Nothing was sent." });
 
 		consoleLogSpy.mockRestore();
 	});
@@ -116,7 +116,7 @@ describe("Webhook", () => {
 		// Second call within the interval
 		const result = await webhook.send(mockData);
 
-		expect(result).toEqual({ exitCode: 0, message: "Data was sent less than 60s ago. Skipping send." });
+		expect(result).toEqual({ exitCode: 2, message: "Data was sent less than 60s ago. Skipping send." });
 		expect(fetch).toHaveBeenCalledTimes(1); // Ensure fetch was called only once
 	});
 

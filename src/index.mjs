@@ -1,3 +1,5 @@
+import { SEND_RESULT } from "./webhooks/webhook.mjs";
+
 const DEFAULT_READ_INTERVAL = 5 * 60 * 1000; // read the meter every 5 minutes by default
 
 let dryRun = false;
@@ -28,7 +30,8 @@ const readAndCache = async (device, cache) => {
 };
 
 /**
- * Attempt to send all cached readings to the webhook. The cache is only cleared on a successful send
+ * Attempt to send all cached readings to the webhook. Readings are only dropped once they were actually sent,
+ * so skipped sends (throttling, dry run) keep them queued
  * @param {import("./webhooks/webhook.mjs").Webhook} hook - The webhook to send the cached readings to
  * @param {import("./homewizard/reading-cache.mjs").ReadingCache} cache - The cache of pending readings
  * @returns {Promise<void>}
@@ -41,7 +44,7 @@ const flushCache = async (hook, cache) => {
 	if (!dryRun) await hook.connect();
 
 	const result = await hook.send(readings, dryRun);
-	if (result.exitCode === 0) cache.remove(readings);
+	if (result.exitCode === SEND_RESULT.SUCCESS) cache.remove(readings);
 };
 
 /**

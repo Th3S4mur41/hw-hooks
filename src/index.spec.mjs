@@ -64,6 +64,17 @@ describe("index", () => {
 
 			expect(cache.remove).not.toHaveBeenCalled();
 		});
+
+		it("keeps the cache when the send was skipped", async () => {
+			const device = createMockDevice();
+			const cache = createMockCache();
+			const hook = createMockHook({ exitCode: 2, message: "Skipping send." });
+
+			await execute(device, hook, cache);
+
+			expect(cache.remove).not.toHaveBeenCalled();
+			expect(cache.all).toHaveLength(1);
+		});
 	});
 
 	describe("schedule", () => {

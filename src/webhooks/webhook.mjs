@@ -4,6 +4,16 @@
 
 const METHODS = new Set(["GET", "POST", "PUT", "PATCH", "DELETE"]); // Supported HTTP methods
 
+/**
+ * Result codes returned by `Webhook.send`. Only SUCCESS means the data actually reached the remote end,
+ * so callers must keep pending readings for anything else
+ */
+export const SEND_RESULT = {
+	SUCCESS: 0,
+	ERROR: 1,
+	SKIPPED: 2,
+};
+
 export class Webhook {
 	#name;
 	#url;
@@ -151,6 +161,7 @@ export class Webhook {
 	 * Send the data to the webhook URL
 	 * @param {Object} data - The data to be sent
 	 * @param {boolean} dryRun - If true, log the data instead of sending it
+	 * @returns {Promise<{exitCode: number, message: string}>} - SEND_RESULT.SUCCESS only when the data was sent
 	 */
 	send = async (data = "", dryRun = false) => {
 		const jsonData = await this._buildPayload(data);
@@ -158,19 +169,22 @@ export class Webhook {
 		// Check if jsonData is an empty object
 		if (!jsonData) {
 			console.warn(`[${this.#name}] No data matching the mapping. Skipping send.`);
-			return { exitCode: 1, message: "No data matching the mapping. Skipping send." };
+			return { exitCode: SEND_RESULT.ERROR, message: "No data matching the mapping. Skipping send." };
 		}
 
 		// Check if the last send was within the last hour
 		const now = new Date();
 		if (now - this.#synchronized < this.#callInterval * 1000) {
 			console.log(`[${this.#name}] Data was sent less than ${this.#callInterval}s ago. Skipping send.`);
-			return { exitCode: 0, message: `Data was sent less than ${this.#callInterval}s ago. Skipping send.` };
+			return {
+				exitCode: SEND_RESULT.SKIPPED,
+				message: `Data was sent less than ${this.#callInterval}s ago. Skipping send.`,
+			};
 		}
 
 		if (dryRun) {
 			console.log(`[${this.#name}] Would send ${JSON.stringify(jsonData)}...`);
-			return { exitCode: 0, message: "" };
+			return { exitCode: SEND_RESULT.SKIPPED, message: "Dry run. Nothing was sent." };
 		}
 		console.log(`[${this.#name}] Sending ${JSON.stringify(jsonData)}...`);
 
@@ -185,18 +199,18 @@ export class Webhook {
 			} else if (response.status === 429) {
 				const retryAfter = response.headers.get("Retry-After");
 				console.warn(`[${this.#name}] Rate limited. Retry after ${retryAfter}s`);
-				return { exitCode: 1, message: `Rate limited. Retry after ${retryAfter}s` };
+				return { exitCode: SEND_RESULT.ERROR, message: `Rate limited. Retry after ${retryAfter}s` };
 			} else if (!response.ok) {
 				throw new Error(`Failed to send data: ${response.statusText}`);
 			}
 			console.log(`[${this.#name}] Data sent successfully`);
 		} catch (error) {
 			console.error("Failed to send data", error);
-			return { exitCode: 1, message: error.message };
+			return { exitCode: SEND_RESULT.ERROR, message: error.message };
 		}
 
 		this.#synchronized = now;
-		return { exitCode: 0, message: "Data sent successfully" };
+		return { exitCode: SEND_RESULT.SUCCESS, message: "Data sent successfully" };
 	};
 
 	/**
