@@ -27,7 +27,7 @@ There is nothing to install on the EnergyID website, but you need provisioning c
 3. Copy the generated **key** and **secret** and pass them to hw-hooks as `--provisioning-key` and `--provisioning-secret` (see [Usage](#usage) below).
 
 > [!NOTE]
-> These two options are only needed on the first run. hw-hooks stores them in `config/config.jsonc` and reuses them on subsequent runs.
+> These two options are only needed on the first run. hw-hooks stores them in `config/config.json` and reuses them on subsequent runs.
 
 On that first run, hw-hooks links the device to one of your records:
 
@@ -51,13 +51,13 @@ Open a terminal/console and run the following script:
 npx hw-hooks --meter=<meter host or ip> --provisioning-key=<key> --provisioning-secret=<secret>
 ```
 
-After the first run, the credentials are stored in `config/config.jsonc` and only `--meter` is required:
+After the first run, the credentials are stored in `config/config.json` and only `--meter` is required:
 
 ```sh
 npx hw-hooks --meter=<meter host or ip> <options>
 ```
 
-The device id/name/firmware version are read from the meter and are, together with the claimed connection info, persisted to `config/config.jsonc` so they're reused on subsequent runs.
+The device id/name/firmware version are read from the meter and are, together with the claimed connection info, persisted to `config/config.json` so they're reused on subsequent runs.
 
 ### Options
 
@@ -72,7 +72,7 @@ The device id/name/firmware version are read from the meter and are, together wi
 | `--help`                | `-h`             | Yes      | Show help                                                                              |
 | `--version`             | `-v`             | Yes      | Show version number                                                                    |
 
-\* Required unless already stored in `config/config.jsonc` from a previous run.
+\* Required unless already stored in `config/config.json` from a previous run.
 
 ### Docker
 
@@ -106,7 +106,7 @@ services:
     image: ghcr.io/th3s4mur41/hw-hooks
     environment:
       - meter=<the IP address of the Meter device>
-    # Only needed until the device is claimed, they are stored in config/config.jsonc afterwards
+    # Only needed until the device is claimed, they are stored in config/config.json afterwards
     secrets:
       - provisioning_key
       - provisioning_secret
@@ -149,7 +149,7 @@ On first start, watch the container logs (`docker compose logs -f`) for the clai
 | `provisioning_key`    | Yes\*    | EnergyID provisioning key, prefer the `provisioning_key` Docker secret       |
 | `provisioning_secret` | Yes\*    | EnergyID provisioning secret, prefer the `provisioning_secret` Docker secret |
 
-\* Required unless already stored in the mounted `config/config.jsonc` from a previous run.
+\* Required unless already stored in the mounted `config/config.json` from a previous run.
 
 ## Examples
 

@@ -92,13 +92,13 @@ const yargsBin = yargs(hideBin(process.argv))
 	.option("k", {
 		alias: "provisioning-key",
 		description:
-			"EnergyID provisioning key (required on first run, stored in config/config.jsonc afterwards). Can also be provided as a Docker secret or the provisioning_key environment variable",
+			"EnergyID provisioning key (required on first run, stored in config/config.json afterwards). Can also be provided as a Docker secret or the provisioning_key environment variable",
 		type: "string",
 	})
 	.option("s", {
 		alias: "provisioning-secret",
 		description:
-			"EnergyID provisioning secret (required on first run, stored in config/config.jsonc afterwards). Can also be provided as a Docker secret or the provisioning_secret environment variable",
+			"EnergyID provisioning secret (required on first run, stored in config/config.json afterwards). Can also be provided as a Docker secret or the provisioning_secret environment variable",
 		type: "string",
 	})
 	.option("r", {
@@ -148,7 +148,7 @@ try {
 }
 const mapping = readMapping();
 
-const config = new Config(`${CONFIG_DIR}/config.jsonc`);
+const config = new Config(`${CONFIG_DIR}/config.json`);
 const device = await Device.init(meter, argv.offset, config);
 
 console.log("HomeWizard device:");

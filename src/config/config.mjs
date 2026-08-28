@@ -1,29 +1,19 @@
 /**
- * Config class - handles loading, persisting and accessing app configuration stored as JSONC.
+ * Config class - handles loading, persisting and accessing app configuration stored as JSON.
  * The config folder/file is created automatically if it doesn't exist yet.
  */
 
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-const DEFAULT_CONFIG_FILE = "./config/config.jsonc";
-
-/**
- * Strip // and block comments from a JSONC string so it can be parsed with JSON.parse.
- * @param {string} text - The JSONC text
- * @returns {string} - JSON-only text
- */
-const stripJsonComments = (text) =>
-	text
-		.replace(/\/\*[\s\S]*?\*\//g, "") // block comments
-		.replace(/(^|[^":])\/\/.*$/gm, "$1"); // line comments (best-effort, avoids matching "://" inside strings)
+const DEFAULT_CONFIG_FILE = "./config/config.json";
 
 export class Config {
 	#filePath;
 	#data;
 
 	/**
-	 * @param {string} [filePath] - Path to the JSONC config file (Default: ./config/config.jsonc)
+	 * @param {string} [filePath] - Path to the JSON config file (Default: ./config/config.json)
 	 */
 	constructor(filePath = DEFAULT_CONFIG_FILE) {
 		this.#filePath = filePath;
@@ -45,7 +35,7 @@ export class Config {
 			this.#save();
 			return this.#data;
 		}
-		return JSON.parse(stripJsonComments(text));
+		return JSON.parse(text);
 	};
 
 	/**

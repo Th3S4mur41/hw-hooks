@@ -10,7 +10,7 @@ vi.mock("node:fs", () => ({
 
 import * as fs from "node:fs";
 
-const CONFIG_FILE = "./config/config.jsonc";
+const CONFIG_FILE = "./config/config.json";
 
 describe("Config", () => {
 	beforeEach(() => {
@@ -41,11 +41,8 @@ describe("Config", () => {
 		expect(fs.writeFileSync).not.toHaveBeenCalled();
 	});
 
-	it("parses JSONC (with comments) and reads nested values via dot-notation", () => {
-		fs.readFileSync.mockReturnValue(`{
-			// a comment
-			"energyid": { "provisioningKey": "abc" } /* block comment */
-		}`);
+	it("reads nested values via dot-notation", () => {
+		fs.readFileSync.mockReturnValue('{ "energyid": { "provisioningKey": "abc" } }');
 
 		const config = new Config(CONFIG_FILE);
 
