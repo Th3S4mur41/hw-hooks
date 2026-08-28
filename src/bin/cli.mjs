@@ -91,8 +91,11 @@ setDryRun(argv.d);
 
 // Ensure the config folder and default mapping file exist so users can inspect/customize them
 fs.mkdirSync(CONFIG_DIR, { recursive: true });
-if (!fs.existsSync(MAPPING_FILE)) {
-	fs.writeFileSync(MAPPING_FILE, JSON.stringify(DEFAULT_MAPPING, null, 2));
+try {
+	// "wx" creates the file atomically, so a concurrent run can't have its mapping overwritten
+	fs.writeFileSync(MAPPING_FILE, JSON.stringify(DEFAULT_MAPPING, null, 2), { flag: "wx" });
+} catch (error) {
+	if (error.code !== "EEXIST") throw error;
 }
 const mapping = JSON.parse(fs.readFileSync(MAPPING_FILE, "utf8"));
 
