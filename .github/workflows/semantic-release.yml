@@ -66,6 +66,10 @@ jobs:
           DOCKER_REGISTRY_USER: ${{ github.actor }}
           DOCKER_REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
           HUSKY: 0 # disable pre-commit hooks
+          # workflow_run always sets GITHUB_REF/GITHUB_SHA to the default branch, not the branch being released;
+          # override them so semantic-release detects the branch actually checked out above.
+          GITHUB_REF: refs/heads/${{ github.event.workflow_run.head_branch || github.base_ref }}
+          GITHUB_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
         run: |
           npm run release
           echo "version=$(npm run env | grep npm_package_version | cut -d '=' -f 2)" >> $GITHUB_OUTPUT
