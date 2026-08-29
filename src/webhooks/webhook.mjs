@@ -220,16 +220,25 @@ export class Webhook {
 	};
 
 	/**
-	 * Report a 429 response as a structured result, defaulting Retry-After when the header is missing
+	 * Report a 429 response as SKIPPED, backing off the internal throttling so the next tick doesn't retrigger the limit
 	 * @param {Response} response - The response to check
 	 * @returns {{exitCode: number, message: string}|undefined} - The result when rate limited, otherwise undefined
 	 */
 	#handleRateLimit = (response) => {
 		if (response.status !== 429) return undefined;
 
-		const retryAfter = response.headers.get("Retry-After") ?? "unknown";
+		const retryAfterHeader = response.headers.get("Retry-After");
+		const retryAfterSeconds = Number(retryAfterHeader);
+		const retryAfter =
+			Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0 ? retryAfterSeconds : this.#callInterval;
+
 		console.warn(`[${this.#name}] Rate limited. Retry after ${retryAfter}s`);
-		return { exitCode: SEND_RESULT.ERROR, message: `Rate limited. Retry after ${retryAfter}s` };
+
+		// Push the synchronized timestamp forward and stretch the interval so `send` naturally skips until Retry-After elapses
+		this.#synchronized = new Date();
+		this.#callInterval = retryAfter;
+
+		return { exitCode: SEND_RESULT.SKIPPED, message: `Rate limited. Retry after ${retryAfter}s` };
 	};
 
 	/**
@@ -246,7 +255,7 @@ export class Webhook {
 					method: this.#method,
 					headers,
 				};
-				if (this.#method !== "GET" && this.#method !== "HEAD") {
+				if (this.#method !== "GET") {
 					init.body = JSON.stringify(jsonData);
 				}
 				return init;
