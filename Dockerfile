@@ -11,9 +11,9 @@ RUN npm ci
  
 COPY . .
  
-ENV energyid ''
+ENV meter=""
 # p1 is deprecated, use meter instead
-ENV p1 ''
-ENV meter ${p1}
+ENV p1=""
 
-CMD npx hw-hooks --energyid=${energyid} --meter=${meter} -r
+# Provisioning credentials are read at runtime from /run/secrets, never from a build argument or ENV
+CMD ["npx", "hw-hooks", "-r"]

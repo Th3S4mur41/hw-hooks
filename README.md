@@ -9,21 +9,31 @@
 
 ![](./docs/logo.jpg)
 
-**hw-hooks** previously known as [hw2energyid](https://www.npmjs.com/package/hw2energyid) is small tool that triggers webhooks based on data gathered from [HomeWizard](https://www.homewizard.com/) devices.
-
-The app includes a bunch of preconfigured webhooks to synchonize your data with you [EnergyID](https://app.energyid.eu/) dashboard.
+**hw-hooks** previously known as [hw2energyid](https://www.npmjs.com/package/hw2energyid) is small tool that triggers webhooks based on data gathered from [HomeWizard](https://www.homewizard.com/) devices to synchronize your data with your [EnergyID](https://app.energyid.eu/) dashboard.
 Since HomeWizard devices API are only available within your local network, using an [EnergyID App](https://app.energyid.eu/integrations) to synchronize the data is not possible.  
-**hw-hooks** helps bridge the gap by reading the data from your local network and sending them to EnergyId using the WebHook App
+**hw-hooks** helps bridge the gap by reading the data from your local network and sending them to EnergyID.
 
 ## Prerequisites
 
 ### EnergyID
 
-Before you start, you need to create a webhook in EnergyID to let the tool push the data to your dashboard.
+> [!IMPORTANT]
+> hw-hooks no longer supports the legacy EnergyID webhook (URL + key). It now uses EnergyID's current [incoming webhook](https://help.energyid.eu/en/developer/incoming-webhooks/), which is claimed interactively on first run. The legacy webhook is being sunset by EnergyID on 30 September 2026.
 
-1. Go to the [EnergyId incoming webhook page](https://app.energyid.eu/integrations/WebhookIn) and click activate.
-2. Pick the record you would like to send readings to (e.g.: Home), and provide a name for your application or device (e.g.: HomeWizard).
-3. Copy the generated Webhook URL.
+There is nothing to install on the EnergyID website, but you need provisioning credentials before the first run:
+
+1. Open <https://app.energyid.eu/integrations/webhook-in>.
+2. In the **Provisioning credentials** box, click the **+** button in the top right corner.
+3. Copy the generated **key** and **secret** and pass them to hw-hooks as `--provisioning-key` and `--provisioning-secret` (see [Usage](#usage) below).
+
+> [!NOTE]
+> These two options are only needed on the first run. hw-hooks stores them in `config/config.json` and reuses them on subsequent runs.
+
+On that first run, hw-hooks links the device to one of your records:
+
+1. hw-hooks prints a claim URL and a claim code in the console.
+2. Open the URL, select the record you want to link the device to (e.g.: Home), and enter the claim code.
+3. hw-hooks keeps polling until the device is claimed, then starts sending data.
 
 ### Node
 
@@ -38,20 +48,31 @@ You can either run the tool in the console using the NPM script or use the Docke
 Open a terminal/console and run the following script:
 
 ```sh
-npx hw-hooks --energyid=<url of the webhook> <options>
+npx hw-hooks --meter=<meter host or ip> --provisioning-key=<key> --provisioning-secret=<secret>
 ```
+
+After the first run, the credentials are stored in `config/config.json` and only `--meter` is required:
+
+```sh
+npx hw-hooks --meter=<meter host or ip> <options>
+```
+
+The device id/name/firmware version are read from the meter and are, together with the claimed connection info, persisted to `config/config.json` so they're reused on subsequent runs.
 
 ### Options
 
-| Option        | Alias            | Description                                                                            |
-| ------------- | ---------------- | -------------------------------------------------------------------------------------- |
-| `--energyid`  | `-e`             | The URL of the EnergyID Webhook                                                        |
-| `--meter`     | `-m` `-p` `--p1` | The name or IP address of the Homewizard meter                                         |
-| `--offset`    | `-o`             | Add an offset to the meter's value (to compensate for consumption before installation) |
-| `--dry-run`   | `-d`             | Dry run. No data will be sent to EnergyID                                              |
-| `--recurring` | `-r`             | Run the tool every hour                                                                |
-| `--help`      | `-h`             | Show help                                                                              |
-| `--version`   | `-v`             | Show version number                                                                    |
+| Option                  | Alias            | Optional | Description                                                                            |
+| ----------------------- | ---------------- | -------- | -------------------------------------------------------------------------------------- |
+| `--meter`               | `-m` `-p` `--p1` | No       | The name or IP address of the Homewizard meter                                         |
+| `--provisioning-key`    | `-k`             | Yes\*    | EnergyID provisioning key (required on first run, stored in config afterwards)         |
+| `--provisioning-secret` | `-s`             | Yes\*    | EnergyID provisioning secret (required on first run, stored in config afterwards)      |
+| `--offset`              | `-o`             | Yes      | Add an offset to the meter's value (to compensate for consumption before installation) |
+| `--dry-run`             | `-d`             | Yes      | Dry run. No data will be sent to EnergyID                                              |
+| `--recurring`           | `-r`             | Yes      | Read the meter every 5 minutes and send following EnergyID's upload interval           |
+| `--help`                | `-h`             | Yes      | Show help                                                                              |
+| `--version`             | `-v`             | Yes      | Show version number                                                                    |
+
+\* Required unless already stored in `config/config.json` from a previous run.
 
 ### Docker
 
@@ -84,21 +105,48 @@ services:
   hw-hooks:
     image: ghcr.io/th3s4mur41/hw-hooks
     environment:
-      - energyid=<the URL of the EnergyId webhook>
-      - meter=<the IP address of the  Meter device>
+      - meter=<the IP address of the Meter device>
+    # Only needed until the device is claimed, they are stored in config/config.json afterwards
+    secrets:
+      - provisioning_key
+      - provisioning_secret
+    volumes:
+      - ./config:/app/config
     network_mode: host
     dns:
       - 1.1.1.1
+
+secrets:
+  provisioning_key:
+    file: ./secrets/provisioning_key
+  provisioning_secret:
+    file: ./secrets/provisioning_secret
 ```
 
-> **Note**  
-> The `dns` section is required to resolve the EnergyId webhook URL.
+Create the two secret files next to the compose file, each containing only the corresponding value:
+
+```sh
+mkdir -p secrets
+printf '%s' '<your EnergyID provisioning key>' > secrets/provisioning_key
+printf '%s' '<your EnergyID provisioning secret>' > secrets/provisioning_secret
+```
+
+> [!NOTE]
+> The `dns` section is required to resolve the EnergyID webhook URL.
 > If you are using a different DNS server, replace
 
-| Environment Variable | Description                            |
-| -------------------- | -------------------------------------- |
-| `energyid`           | The URL of the EnergyID Webhook        |
-| `meter`              | The IP address of the Homewizard meter |
+> [!IMPORTANT]  
+> Mount `./config:/app/config` so the provisioning credentials and claimed connection info survive restarts (otherwise the device has to be re-claimed on every restart). This also lets you edit `config/energyid-mapping.json` to customize which meter fields are sent to EnergyID.
+
+On first start, watch the container logs (`docker compose logs -f`) for the claim URL and code, as described in [Prerequisites](#prerequisites).
+
+| Environment Variable  | Optional | Description                                                                  |
+| --------------------- | -------- | ---------------------------------------------------------------------------- |
+| `meter`               | No       | The IP address of the Homewizard meter                                       |
+| `provisioning_key`    | Yes\*    | EnergyID provisioning key, prefer the `provisioning_key` Docker secret       |
+| `provisioning_secret` | Yes\*    | EnergyID provisioning secret, prefer the `provisioning_secret` Docker secret |
+
+\* Required unless already stored in the mounted `config/config.json` from a previous run.
 
 ## Examples
 
@@ -120,13 +168,13 @@ The name of the device is 'hw-p1meter-' followed by the last six charachters of 
 Now that you have all the data you need. Open a terminal/console and run the following script:
 
 ```sh
-npx hw-hooks --meter=hw-p1meter-<last 6 charachter of serial> --energyid=<url of the webhook>
+npx hw-hooks --meter=hw-p1meter-<last 6 charachter of serial>
 ```
 
 E.g.: The command with your data should look similar to this:
 
 ```sh
-npx hw-hooks --meter=hw-p1meter-65d8c7 --energyid=https://hooks.energyid.eu/services/WebhookIn/46535693-fe25-48ba-96fa-ea827e987318/OS753GD97A11
+npx hw-hooks --meter=hw-p1meter-65d8c7
 ```
 
 ### Water Meter
@@ -139,16 +187,16 @@ The name of the device is 'watermeter-' followed by the last six charachters of 
 Now that you have all the data you need. Open a terminal/console and run the following script:
 
 ```sh
-npx hw-hooks --meter=watermeter-<last 6 charachter of serial> --energyid=<url of the webhook>
+npx hw-hooks --meter=watermeter-<last 6 charachter of serial>
 ```
 
 E.g.: The command with your data should look similar to this:
 
 ```sh
-npx hw-hooks --meter=watermeter-65d8c7 --offset=22.334 --energyid=https://hooks.energyid.eu/services/WebhookIn/46535693-fe25-48ba-96fa-ea827e987318/OS753GD97A11
+npx hw-hooks --meter=watermeter-65d8c7 --offset=22.334
 ```
 
 ## Links
 
 [homewizard dicovery docs](https://api-documentation.homewizard.com/docs/discovery)  
-[EnergyId Webhook Docs](https://api.energyid.eu/docs.html#webhook)
+[EnergyID Webhook Docs](https://help.energyid.eu/en/developer/incoming-webhooks/)

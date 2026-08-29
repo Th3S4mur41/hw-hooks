@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { Webhook } from "../webhooks/webhook.mjs";
 import { Device } from "./device.mjs";
 
 globalThis.fetch = vi.fn();
@@ -18,11 +17,6 @@ describe("Device", () => {
 		data: "mockData",
 	};
 
-	const mockHook = new Webhook("TestWebhook", "https://example.com/webhook", "POST", {
-		key1: "${value1}",
-		key2: "${value2}",
-	});
-
 	beforeEach(() => {
 		fetch.mockReset();
 	});
@@ -38,12 +32,29 @@ describe("Device", () => {
 		expect(device).toBeInstanceOf(Device);
 		expect(device.offset).toBe(mockOffset);
 		expect(device.data).toEqual({});
+		expect(device.name).toBe(mockData.product_name);
+		expect(device.serial).toBe(mockData.serial);
+		expect(device.firmwareVersion).toBe(mockData.firmware_version);
 	});
 
 	it("should throw an error if initialization fails", async () => {
 		fetch.mockRejectedValueOnce(new Error("Network Error"));
 
 		await expect(Device.init(mockAddress, mockOffset)).rejects.toThrow("Cannot initialize 192.168.1.1");
+	});
+
+	it("should persist name/serial/firmwareVersion to the provided config on init", async () => {
+		fetch.mockResolvedValueOnce({
+			ok: true,
+			json: async () => mockData,
+		});
+		const mockConfig = { set: vi.fn() };
+
+		await Device.init(mockAddress, mockOffset, mockConfig);
+
+		expect(mockConfig.set).toHaveBeenCalledWith("homewizard.name", mockData.product_name);
+		expect(mockConfig.set).toHaveBeenCalledWith("homewizard.serial", mockData.serial);
+		expect(mockConfig.set).toHaveBeenCalledWith("homewizard.firmwareVersion", mockData.firmware_version);
 	});
 
 	it("should update data successfully", async () => {
@@ -109,21 +120,5 @@ describe("Device", () => {
 		await device.update();
 
 		expect(device.data).toEqual(mockApiResponse);
-	});
-
-	it("should add a hook successfully", async () => {
-		fetch.mockResolvedValueOnce({
-			ok: true,
-			json: async () => mockData,
-		});
-		const device = await Device.init(mockAddress, mockOffset);
-
-		const result = device.addHook(mockHook);
-		expect(result).toEqual({ exitCode: 0, message: `Hook ${mockHook.name} added` });
-
-		// check if the hooks set contains the new hook
-		expect(device.hooks.size).toBe(1);
-
-		expect(device.hooks.values().next().value.name).toBe(mockHook.name);
 	});
 });

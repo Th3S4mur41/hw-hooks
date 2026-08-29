@@ -8,10 +8,12 @@ describe("Webhook", () => {
 	const mockName = "TestWebhook";
 	const mockUrl = "https://example.com/webhook";
 	const mockMethod = "POST";
+	// biome-ignore-start lint/suspicious/noTemplateCurlyInString: intentional placeholder syntax for #formatData, not a template literal
 	const mockMapping = {
 		key1: "${value1}",
 		key2: "${value2}",
 	};
+	// biome-ignore-end lint/suspicious/noTemplateCurlyInString: intentional placeholder syntax for #formatData, not a template literal
 	const mockData = {
 		value1: "data1",
 		value2: "data2",
@@ -61,6 +63,16 @@ describe("Webhook", () => {
 		expect(result).toEqual({ exitCode: 0, message: "Data sent successfully" });
 	});
 
+	it("should not send an empty payload", async () => {
+		const webhook = new Webhook(mockName, mockUrl, mockMethod, mockMapping);
+		vi.spyOn(webhook, "_buildPayload").mockReturnValue({});
+
+		const result = await webhook.send(mockData);
+
+		expect(fetch).not.toHaveBeenCalled();
+		expect(result).toEqual({ exitCode: 1, message: "No data matching the mapping. Skipping send." });
+	});
+
 	it("should handle data sending failure", async () => {
 		fetch.mockResolvedValueOnce({
 			ok: false,
@@ -86,6 +98,50 @@ describe("Webhook", () => {
 		expect(result).toEqual({ exitCode: 1, message: "Failed to send data: Internal Server Error" });
 	});
 
+	it("should report a rate limit hit as skipped and back off the call interval", async () => {
+		fetch.mockResolvedValueOnce({
+			ok: false,
+			status: 429,
+			headers: { get: () => "30" },
+		});
+
+		const webhook = new Webhook(mockName, mockUrl, mockMethod, mockMapping);
+
+		const result = await webhook.send(mockData);
+
+		expect(result).toEqual({ exitCode: 2, message: "Rate limited. Retry after 30s" });
+		expect(webhook.callInterval).toBe(30);
+		expect(webhook.synchronized).not.toEqual(new Date(0));
+	});
+
+	it("should default the retry delay to the current call interval when the Retry-After header is missing", async () => {
+		fetch.mockResolvedValueOnce({
+			ok: false,
+			status: 429,
+			headers: { get: () => null },
+		});
+
+		const webhook = new Webhook(mockName, mockUrl, mockMethod, mockMapping);
+
+		const result = await webhook.send(mockData);
+
+		expect(result).toEqual({ exitCode: 2, message: "Rate limited. Retry after 60s" });
+		expect(webhook.callInterval).toBe(60);
+	});
+
+	it("should report a rate limit hit on the 401 retry response too", async () => {
+		fetch
+			.mockResolvedValueOnce({ ok: false, status: 401, statusText: "Unauthorized" })
+			.mockResolvedValueOnce({ ok: false, status: 429, headers: { get: () => "30" } });
+
+		const webhook = new Webhook(mockName, mockUrl, mockMethod, mockMapping);
+
+		const result = await webhook.send(mockData);
+
+		expect(fetch).toHaveBeenCalledTimes(2);
+		expect(result).toEqual({ exitCode: 2, message: "Rate limited. Retry after 30s" });
+	});
+
 	it("should log data instead of sending when dryRun is true", async () => {
 		const consoleLogSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 
@@ -99,7 +155,7 @@ describe("Webhook", () => {
 				key2: "data2",
 			})}...`,
 		);
-		expect(result).toEqual({ exitCode: 0, message: "" });
+		expect(result).toEqual({ exitCode: 2, message: "Dry run. Nothing was sent." });
 
 		consoleLogSpy.mockRestore();
 	});
@@ -116,7 +172,7 @@ describe("Webhook", () => {
 		// Second call within the interval
 		const result = await webhook.send(mockData);
 
-		expect(result).toEqual({ exitCode: 0, message: "Data was sent less than 60s ago. Skipping send." });
+		expect(result).toEqual({ exitCode: 2, message: "Data was sent less than 60s ago. Skipping send." });
 		expect(fetch).toHaveBeenCalledTimes(1); // Ensure fetch was called only once
 	});
 

@@ -47,6 +47,10 @@ typings/
 # TypeScript cache
 *.tsbuildinfo
 
+# Local runtime config (contains EnergyID provisioning secrets)
+config/config.json
+config/.cache.json
+
 # Optional npm cache directory
 .npm
 
