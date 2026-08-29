@@ -15,7 +15,7 @@ export const getDryRun = () => dryRun;
  * @param {boolean} value - The new dry run status.
  */
 export const setDryRun = (value) => {
-	dryRun = value;
+	dryRun = Boolean(value);
 };
 
 /**
