@@ -1,3 +1,9 @@
+## [2.0.0-alpha.5](https://github.com/Th3S4mur41/hw-hooks/compare/v2.0.0-alpha.4...v2.0.0-alpha.5) (2026-08-31)
+
+### Bug Fixes
+
+* remove provenance from publishConfig in package.json ([61bdfe2](https://github.com/Th3S4mur41/hw-hooks/commit/61bdfe2a65318c726cdb562852ce600f196226bf))
+
 ## [2.0.0-alpha.4](https://github.com/Th3S4mur41/hw-hooks/compare/v2.0.0-alpha.3...v2.0.0-alpha.4) (2026-08-31)
 
 ### Bug Fixes
