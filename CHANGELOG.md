@@ -1,3 +1,15 @@
+## [2.0.0-alpha.3](https://github.com/Th3S4mur41/hw-hooks/compare/v2.0.0-alpha.2...v2.0.0-alpha.3) (2026-08-31)
+
+### Features
+
+* update to energyid webhook v2 ([#487](https://github.com/Th3S4mur41/hw-hooks/issues/487)) ([5d08ad9](https://github.com/Th3S4mur41/hw-hooks/commit/5d08ad9f552f3fcd1c514a829eca4dc28f754d53))
+
+### Bug Fixes
+
+* attest docker image build provenance ([21e7297](https://github.com/Th3S4mur41/hw-hooks/commit/21e7297428b0ec3752c6a063d1478fbf6b8370cc))
+* **attest:** get the correct image name from package.json ([05feffb](https://github.com/Th3S4mur41/hw-hooks/commit/05feffb2ee322104093da3fa5b0bd28f5026e30e))
+* update digest format for docker attestation ([d3af611](https://github.com/Th3S4mur41/hw-hooks/commit/d3af611559d0a91ec6ea6570460099a2887b2524))
+
 ## [2.0.0-alpha.2](https://github.com/Th3S4mur41/hw-hooks/compare/v2.0.0-alpha.1...v2.0.0-alpha.2) (2024-10-25)
 
 ### Features
