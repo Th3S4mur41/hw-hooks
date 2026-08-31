@@ -1,3 +1,9 @@
+## [2.0.0-alpha.7](https://github.com/Th3S4mur41/hw-hooks/compare/v2.0.0-alpha.6...v2.0.0-alpha.7) (2026-08-31)
+
+### Bug Fixes
+
+* energyID throttle respecting schedule ([d034378](https://github.com/Th3S4mur41/hw-hooks/commit/d0343786c60c5140522b25938ed63bb53ac87557))
+
 ## [2.0.0-alpha.6](https://github.com/Th3S4mur41/hw-hooks/compare/v2.0.0-alpha.5...v2.0.0-alpha.6) (2026-08-31)
 
 ### Bug Fixes
