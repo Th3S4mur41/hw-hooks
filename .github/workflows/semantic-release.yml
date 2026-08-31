@@ -66,6 +66,9 @@ jobs:
           DOCKER_REGISTRY_USER: ${{ github.actor }}
           DOCKER_REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
           HUSKY: 0 # disable pre-commit hooks
+          # Disable provenance for non-main branches to avoid attestation errors
+          # https://github.com/semantic-release/semantic-release/issues/2704#issuecomment-5475818864
+          NPM_CONFIG_PROVENANCE: ${{ github.event.workflow_run.head_branch == 'main' && 'true' || 'false' }}
         run: |
           GITHUB_REF=refs/heads/${{ github.event.workflow_run.head_branch || github.base_ref }} # set the branch to release
           npm run release
