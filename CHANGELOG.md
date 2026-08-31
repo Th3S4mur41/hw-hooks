@@ -1,3 +1,9 @@
+## [2.0.0-alpha.4](https://github.com/Th3S4mur41/hw-hooks/compare/v2.0.0-alpha.3...v2.0.0-alpha.4) (2026-08-31)
+
+### Bug Fixes
+
+* npm provenance on non main branch ([489f9c9](https://github.com/Th3S4mur41/hw-hooks/commit/489f9c9eb4633af24ddfd09bd19f624c3dd0f436))
+
 ## [2.0.0-alpha.3](https://github.com/Th3S4mur41/hw-hooks/compare/v2.0.0-alpha.2...v2.0.0-alpha.3) (2026-08-31)
 
 ### Features
