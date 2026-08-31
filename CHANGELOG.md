@@ -1,3 +1,9 @@
+## [2.0.0-alpha.6](https://github.com/Th3S4mur41/hw-hooks/compare/v2.0.0-alpha.5...v2.0.0-alpha.6) (2026-08-31)
+
+### Bug Fixes
+
+* update CMD to use node and bin/cli.mjs in Dockerfile ([769808d](https://github.com/Th3S4mur41/hw-hooks/commit/769808dc538fa4260847e44f13ed1355add54b14))
+
 ## [2.0.0-alpha.5](https://github.com/Th3S4mur41/hw-hooks/compare/v2.0.0-alpha.4...v2.0.0-alpha.5) (2026-08-31)
 
 ### Bug Fixes
