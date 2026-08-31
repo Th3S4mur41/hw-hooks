@@ -55,7 +55,10 @@
 			"@codedependant/semantic-release-docker",
 			{
 				"dockerRegistry": "ghcr.io",
-				"dockerProject": "th3s4mur41"
+				"dockerProject": "th3s4mur41",
+				"dockerBuildFlags": {
+					"provenance": false
+				}
 			}
 		],
 		"@semantic-release/github"
