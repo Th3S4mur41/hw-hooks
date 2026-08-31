@@ -84,6 +84,14 @@ export class Webhook {
 	}
 
 	/**
+	 * Setter for the synchronized property, so subclasses can restore it from persisted state after a restart
+	 * @param {Date} date - The date of the last successful send
+	 */
+	set synchronized(date) {
+		this.#synchronized = date;
+	}
+
+	/**
 	 * Getter for the mapping property
 	 * @returns {Object} - The mapping of the webhook
 	 */
@@ -166,6 +174,12 @@ export class Webhook {
 	async _onUnauthorized() {}
 
 	/**
+	 * Called whenever the throttling timestamp moves, so subclasses can persist it. No-op by default.
+	 * @param {Date} _date - The new synchronized date
+	 */
+	_onSynchronized(_date) {}
+
+	/**
 	 * Send the data to the webhook URL
 	 * @param {Object} data - The data to be sent
 	 * @param {boolean} dryRun - If true, log the data instead of sending it
@@ -215,7 +229,7 @@ export class Webhook {
 			return { exitCode: SEND_RESULT.ERROR, message: error.message };
 		}
 
-		this.#synchronized = now;
+		this.#setSynchronized(now);
 		return { exitCode: SEND_RESULT.SUCCESS, message: "Data sent successfully" };
 	};
 
@@ -235,10 +249,19 @@ export class Webhook {
 		console.warn(`[${this.#name}] Rate limited. Retry after ${retryAfter}s`);
 
 		// Push the synchronized timestamp forward and stretch the interval so `send` naturally skips until Retry-After elapses
-		this.#synchronized = new Date();
+		this.#setSynchronized(new Date());
 		this.#callInterval = retryAfter;
 
 		return { exitCode: SEND_RESULT.SKIPPED, message: `Rate limited. Retry after ${retryAfter}s` };
+	};
+
+	/**
+	 * Update the throttling timestamp and notify subclasses so they can persist it
+	 * @param {Date} date - The new synchronized date
+	 */
+	#setSynchronized = (date) => {
+		this.#synchronized = date;
+		this._onSynchronized(date);
 	};
 
 	/**

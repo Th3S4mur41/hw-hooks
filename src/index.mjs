@@ -72,10 +72,12 @@ export const execute = async (device, hook, cache) => {
 export const schedule = async (device, hook, cache, readInterval = DEFAULT_READ_INTERVAL) => {
 	console.log("schedule", device.name, `every ${readInterval}ms`);
 
+	// Timers are deliberately kept referenced: unref'd timers don't hold the event loop, so the process would
+	// exit right after the first read/send (and, in Docker, be restarted into an immediate send every time)
 	setInterval(
 		() => void readAndCache(device, cache).catch((error) => console.error("[schedule] Read failed", error)),
 		readInterval,
-	).unref?.();
+	);
 	await readAndCache(device, cache);
 
 	if (!dryRun) await hook.connect(); // learn the upload interval before scheduling sends
@@ -84,6 +86,6 @@ export const schedule = async (device, hook, cache, readInterval = DEFAULT_READ_
 	setInterval(
 		() => void flushCache(hook, cache).catch((error) => console.error("[schedule] Send failed", error)),
 		sendInterval,
-	).unref?.();
+	);
 	await flushCache(hook, cache);
 };

@@ -99,7 +99,17 @@ export class EnergyIdWebhook extends Webhook {
 
 		this.#config.set("energyid.provisioningKey", this.#provisioningKey);
 		this.#config.set("energyid.provisioningSecret", this.#provisioningSecret);
+
+		// Restored from disk so a restart can't reset the throttle and send again before the upload interval elapsed
+		this.synchronized = new Date(config.get("energyid.lastSentAt", 0));
 	}
+
+	/**
+	 * @override
+	 */
+	_onSynchronized = (date) => {
+		this.#config.set("energyid.lastSentAt", date.toISOString());
+	};
 
 	/**
 	 * Getter for the EnergyID upload interval (seconds), once known from a provisioning response

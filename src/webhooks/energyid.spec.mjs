@@ -146,6 +146,23 @@ describe("EnergyIdWebhook", () => {
 		expect(result).toEqual({ exitCode: 0, message: "Data sent successfully" });
 	});
 
+	it("persists the last send and keeps throttling after a restart", async () => {
+		fetch
+			.mockResolvedValueOnce({ ok: true, json: async () => mockConnectionResponse })
+			.mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) });
+		const config = createMockConfig();
+
+		await new EnergyIdWebhook("TestEnergyId", { config }, mockMapping).send(mockReading);
+		expect(config.set).toHaveBeenCalledWith("energyid.lastSentAt", expect.any(String));
+
+		fetch.mockClear();
+		const restarted = new EnergyIdWebhook("TestEnergyId", { config }, mockMapping);
+		const result = await restarted.send(mockReading);
+
+		expect(fetch).not.toHaveBeenCalled();
+		expect(result.exitCode).toBe(2);
+	});
+
 	it("skips sending when no reading in the batch matches the mapping", async () => {
 		const config = createMockConfig();
 		const webhook = new EnergyIdWebhook("TestEnergyId", { config }, mockMapping);
