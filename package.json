@@ -17,7 +17,7 @@
 	"funding": "https://github.com/sponsors/Th3S4mur41",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/Th3S4mur41/hw-hooks.git"
+		"url": "git+https://github.com/Th3S4mur41/hw-hooks.git"
 	},
 	"bugs": {
 		"url": "https://github.com/Th3S4mur41/hw-hooks/issues"
