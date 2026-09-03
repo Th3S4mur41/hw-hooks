@@ -195,7 +195,7 @@ export class Webhook {
 			return { exitCode: SEND_RESULT.ERROR, message: "No data matching the mapping. Skipping send." };
 		}
 
-		// Check if the last send was within the last hour
+		// Check if the last send was within the configured call interval
 		const now = new Date();
 		if (now - this.#synchronized < this.#callInterval * 1000) {
 			getLogger().info(`[${this.#name}] Data was sent less than ${this.#callInterval}s ago. Skipping send.`);
