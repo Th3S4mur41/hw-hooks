@@ -1,6 +1,6 @@
 {
 	"name": "hw-hooks",
-	"version": "2.0.0-alpha.7",
+	"version": "2.0.0-alpha.8",
 	"description": "A tool to synchronize data from HomeWizard to EnergyID",
 	"keywords": [
 		"homewizard",

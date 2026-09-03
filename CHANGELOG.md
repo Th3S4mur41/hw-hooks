@@ -1,3 +1,9 @@
+## [2.0.0-alpha.8](https://github.com/Th3S4mur41/hw-hooks/compare/v2.0.0-alpha.7...v2.0.0-alpha.8) (2026-09-03)
+
+### Features
+
+* **logging:** implement structured logging with pino and rotating file ([#492](https://github.com/Th3S4mur41/hw-hooks/issues/492)) ([707cb4e](https://github.com/Th3S4mur41/hw-hooks/commit/707cb4e9fc9d156cf0eeb25c2abdf1ba0deb181e))
+
 ## [2.0.0-alpha.7](https://github.com/Th3S4mur41/hw-hooks/compare/v2.0.0-alpha.6...v2.0.0-alpha.7) (2026-08-31)
 
 ### Bug Fixes
