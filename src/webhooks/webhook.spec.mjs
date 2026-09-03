@@ -74,6 +74,25 @@ describe("Webhook", () => {
 		expect(result).toEqual({ exitCode: 1, message: "No data matching the mapping. Skipping send." });
 	});
 
+	it("should skip sending when the mapping is empty", async () => {
+		const webhook = new Webhook(mockName, mockUrl, mockMethod, {});
+
+		const result = await webhook.send(mockData);
+
+		expect(fetch).not.toHaveBeenCalled();
+		expect(result).toEqual({ exitCode: 1, message: "No data matching the mapping. Skipping send." });
+	});
+
+	it("should send literal-only mappings", async () => {
+		fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) });
+		const webhook = new Webhook(mockName, mockUrl, mockMethod, { source: "hw-hooks" });
+
+		const result = await webhook.send(mockData);
+
+		expect(fetch).toHaveBeenCalledWith(mockUrl, expect.objectContaining({ body: '{"source":"hw-hooks"}' }));
+		expect(result).toEqual({ exitCode: 0, message: "Data sent successfully" });
+	});
+
 	it("should handle data sending failure", async () => {
 		fetch.mockResolvedValueOnce({
 			ok: false,

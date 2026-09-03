@@ -131,7 +131,7 @@ export class Webhook {
 	#formatData = (data) => {
 		const jsonString = JSON.stringify(this.#mapping);
 		// Check if any placholders is missing from data
-		const missingKeys = jsonString.match(/\$\{(\w+)\}/g).map((key) => key.substring(2, key.length - 1));
+		const missingKeys = (jsonString.match(/\$\{(\w+)\}/g) ?? []).map((key) => key.substring(2, key.length - 1));
 		if (missingKeys.some((key) => data[key] === undefined)) {
 			getLogger().debug(`[${this.#name}] Missing keys in data: ${missingKeys}`);
 			return undefined;
