@@ -1,5 +1,6 @@
 // src/webhook.test.mjs
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { getLogger } from "../logging/logger.mjs";
 import { Webhook } from "./webhook.mjs";
 
 globalThis.fetch = vi.fn();
@@ -143,13 +144,13 @@ describe("Webhook", () => {
 	});
 
 	it("should log data instead of sending when dryRun is true", async () => {
-		const consoleLogSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+		const logSpy = vi.spyOn(getLogger(), "info").mockImplementation(() => {});
 
 		const webhook = new Webhook(mockName, mockUrl, mockMethod, mockMapping);
 
 		const result = await webhook.send(mockData, true);
 
-		expect(consoleLogSpy).toHaveBeenCalledWith(
+		expect(logSpy).toHaveBeenCalledWith(
 			`[${mockName}] Would send ${JSON.stringify({
 				key1: "data1",
 				key2: "data2",
@@ -157,7 +158,7 @@ describe("Webhook", () => {
 		);
 		expect(result).toEqual({ exitCode: 2, message: "Dry run. Nothing was sent." });
 
-		consoleLogSpy.mockRestore();
+		logSpy.mockRestore();
 	});
 
 	it("should not send data if called within the call interval", async () => {

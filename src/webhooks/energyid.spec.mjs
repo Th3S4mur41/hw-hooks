@@ -1,5 +1,6 @@
 // src/webhooks/energyid.spec.mjs
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { getLogger } from "../logging/logger.mjs";
 import { EnergyIdWebhook } from "./energyid.mjs";
 
 vi.mock("node:crypto", () => ({
@@ -193,7 +194,7 @@ describe("EnergyIdWebhook", () => {
 
 	it("prints the claim instructions once and keeps polling silently", async () => {
 		vi.useFakeTimers();
-		const log = vi.spyOn(console, "log").mockImplementation(() => {});
+		const log = vi.spyOn(getLogger(), "info").mockImplementation(() => {});
 		fetch
 			.mockResolvedValueOnce({ ok: true, json: async () => mockClaimResponse })
 			.mockResolvedValueOnce({ ok: true, json: async () => mockClaimResponse })
@@ -206,7 +207,7 @@ describe("EnergyIdWebhook", () => {
 		await vi.advanceTimersByTimeAsync(60_000);
 		await connectPromise;
 
-		const claimLogs = log.mock.calls.filter(([message]) => String(message).includes(mockClaimResponse.claimUrl));
+		const claimLogs = log.mock.calls.filter(([attributes]) => attributes.claimUrl === mockClaimResponse.claimUrl);
 		expect(claimLogs).toHaveLength(1);
 		expect(webhook.isConnected).toBe(true);
 		log.mockRestore();
