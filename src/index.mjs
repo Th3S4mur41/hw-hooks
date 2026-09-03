@@ -1,3 +1,4 @@
+import { getLogger } from "./logging/logger.mjs";
 import { SEND_RESULT } from "./webhooks/webhook.mjs";
 
 const DEFAULT_READ_INTERVAL = 5 * 60 * 1000; // read the meter every 5 minutes by default
@@ -55,7 +56,7 @@ const flushCache = async (hook, cache) => {
  * @returns {Promise<void>}
  */
 export const execute = async (device, hook, cache) => {
-	console.log("execute", device.name);
+	getLogger().info({ device: device.name }, "Execute");
 	await readAndCache(device, cache);
 	await flushCache(hook, cache);
 };
@@ -70,21 +71,22 @@ export const execute = async (device, hook, cache) => {
  * @returns {Promise<void>}
  */
 export const schedule = async (device, hook, cache, readInterval = DEFAULT_READ_INTERVAL) => {
-	console.log("schedule", device.name, `every ${readInterval}ms`);
+	getLogger().info({ device: device.name, readInterval }, "Schedule");
 
 	// Timers are deliberately kept referenced: unref'd timers don't hold the event loop, so the process would
 	// exit right after the first read/send (and, in Docker, be restarted into an immediate send every time)
 	setInterval(
-		() => void readAndCache(device, cache).catch((error) => console.error("[schedule] Read failed", error)),
+		() =>
+			void readAndCache(device, cache).catch((error) => getLogger().error({ err: error }, "[schedule] Read failed")),
 		readInterval,
 	);
 	await readAndCache(device, cache);
 
 	if (!dryRun) await hook.connect(); // learn the upload interval before scheduling sends
 	const sendInterval = (hook.uploadInterval || 60) * 1000;
-	console.log(`Sending cached readings every ${sendInterval}ms (EnergyID upload interval)`);
+	getLogger().info({ sendIntervalMs: sendInterval }, "Sending cached readings at the EnergyID upload interval");
 	setInterval(
-		() => void flushCache(hook, cache).catch((error) => console.error("[schedule] Send failed", error)),
+		() => void flushCache(hook, cache).catch((error) => getLogger().error({ err: error }, "[schedule] Send failed")),
 		sendInterval,
 	);
 	await flushCache(hook, cache);

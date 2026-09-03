@@ -69,6 +69,7 @@ The device id/name/firmware version are read from the meter and are, together wi
 | `--offset`              | `-o`             | Yes      | Add an offset to the meter's value (to compensate for consumption before installation) |
 | `--dry-run`             | `-d`             | Yes      | Dry run. No data will be sent to EnergyID                                              |
 | `--recurring`           | `-r`             | Yes      | Read the meter every 5 minutes and send following EnergyID's upload interval           |
+| `--log-level`           | `-l`             | Yes      | Minimum level: trace, debug, info, warn, error, fatal, or silent (default: info)       |
 | `--help`                | `-h`             | Yes      | Show help                                                                              |
 | `--version`             | `-v`             | Yes      | Show version number                                                                    |
 
@@ -112,6 +113,7 @@ services:
       - provisioning_secret
     volumes:
       - ./config:/app/config
+      - ./logs:/app/logs
     network_mode: host
     dns:
       - 1.1.1.1
@@ -136,7 +138,7 @@ printf '%s' '<your EnergyID provisioning secret>' > secrets/provisioning_secret
 > If you are using a different DNS server, replace
 
 > [!IMPORTANT]  
-> Mount `./config:/app/config` so the provisioning credentials and claimed connection info survive restarts (otherwise the device has to be re-claimed on every restart). This also lets you edit `config/energyid-mapping.json` to customize which meter fields are sent to EnergyID.
+> Mount `./config:/app/config` so the provisioning credentials and claimed connection info survive restarts (otherwise the device has to be re-claimed on every restart). This also lets you edit `config/energyid-mapping.json` to customize which meter fields are sent to EnergyID. Mount `./logs:/app/logs` to retain logs across container recreation.
 
 On first start, watch the container logs (`docker compose logs -f`) for the claim URL and code, as described in [Prerequisites](#prerequisites).
 
@@ -145,8 +147,12 @@ On first start, watch the container logs (`docker compose logs -f`) for the clai
 | `meter`               | No       | The IP address of the Homewizard meter                                       |
 | `provisioning_key`    | Yes\*    | EnergyID provisioning key, prefer the `provisioning_key` Docker secret       |
 | `provisioning_secret` | Yes\*    | EnergyID provisioning secret, prefer the `provisioning_secret` Docker secret |
+| `LOG_LEVEL`           | Yes      | Minimum log level when `--log-level` is not supplied (default: `info`)       |
+| `LOG_FILE_ENABLED`    | Yes      | Write rotating daily files to `/app/logs` (default: `true` in Docker)        |
 
 \* Required unless already stored in the mounted `config/config.json` from a previous run.
+
+Logs are written as JSON to the container output and, by default in Docker, to `/app/logs/hw-hooks.log`. File logs rotate daily, are compressed after rotation, and retain the most recent seven files.
 
 ## Examples
 

@@ -5,6 +5,7 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { getLogger } from "../logging/logger.mjs";
 
 const DEFAULT_CONFIG_FILE = "./config/config.json";
 
@@ -30,7 +31,7 @@ export class Config {
 			text = fs.readFileSync(this.#filePath, "utf8");
 		} catch (error) {
 			if (error.code !== "ENOENT") throw error;
-			console.debug(`[Config] No config file found. Creating a new one at ${this.#filePath}`);
+			getLogger().debug(`[Config] No config file found. Creating a new one at ${this.#filePath}`);
 			this.#data = {};
 			this.#save();
 			return this.#data;

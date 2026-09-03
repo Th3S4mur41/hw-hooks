@@ -9,6 +9,7 @@ import { Config } from "../config/config.mjs";
 import { Device } from "../homewizard/device.mjs";
 import { ReadingCache } from "../homewizard/reading-cache.mjs";
 import { execute, schedule, setDryRun } from "../index.mjs";
+import { closeLogger, configureLogger, getLogger, isFileLoggingEnabled, resolveLogLevel } from "../logging/logger.mjs";
 import { EnergyIdWebhook } from "../webhooks/energyid.mjs";
 
 const CONFIG_DIR = "./config";
@@ -73,7 +74,7 @@ const readMapping = () => {
 			!MAPPING_KEY_PATTERN.test(meterField) ||
 			!MAPPING_KEY_PATTERN.test(energyIdKey)
 		) {
-			console.warn(`Ignoring invalid entry in ${MAPPING_FILE}: ${JSON.stringify(meterField)}`);
+			getLogger().warn(`Ignoring invalid entry in ${MAPPING_FILE}: ${JSON.stringify(meterField)}`);
 			continue;
 		}
 		mapping[meterField] = energyIdKey;
@@ -116,6 +117,12 @@ const yargsBin = yargs(hideBin(process.argv))
 		description: "Read the data and simulate sending the readings",
 		type: "boolean",
 	})
+	.option("l", {
+		alias: "log-level",
+		description: "Minimum log level",
+		choices: ["trace", "debug", "info", "warn", "error", "fatal", "silent"],
+		type: "string",
+	})
 	.demandCommand(0)
 	.help()
 	.alias("h", "help")
@@ -123,6 +130,17 @@ const yargsBin = yargs(hideBin(process.argv))
 	.alias("v", "version");
 
 const argv = yargsBin.argv;
+const logger = configureLogger({
+	level: resolveLogLevel(argv.logLevel, process.env.LOG_LEVEL),
+	fileEnabled: isFileLoggingEnabled(process.env.LOG_FILE_ENABLED),
+});
+const closeAndExit = async (code) => {
+	await closeLogger();
+	process.exit(code);
+};
+
+process.once("SIGINT", () => void closeAndExit(0));
+process.once("SIGTERM", () => void closeAndExit(0));
 
 const meter = argv.meter || process.env.meter || process.env.p1; // p1 is the deprecated name of the meter variable
 const provisioningKey = readCredential(argv.provisioningKey, "provisioning_key");
@@ -133,8 +151,7 @@ if (!meter) {
 	process.exit(1);
 }
 
-console.log(`${pkg.name ?? "hw-hooks"} ${pkg.version ?? "unknown"}`);
-console.log("");
+logger.info(`${pkg.name ?? "hw-hooks"} ${pkg.version ?? "unknown"}`);
 
 setDryRun(argv.d);
 
@@ -151,14 +168,17 @@ const mapping = readMapping();
 const config = new Config(`${CONFIG_DIR}/config.json`);
 const device = await Device.init(meter, argv.offset, config);
 
-console.log("HomeWizard device:");
-console.log(`  Name:     ${device.name}`);
-console.log(`  Serial:   ${device.serial}`);
-console.log(`  Firmware: ${device.firmwareVersion}`);
-console.log(`  API:      ${device.apiVersion}`);
-console.log(`  Address:  ${device.address}`);
-console.log(`  Offset:   ${device.offset}`);
-console.log("");
+logger.info(
+	{
+		name: device.name,
+		serial: device.serial,
+		firmware: device.firmwareVersion,
+		api: device.apiVersion,
+		address: device.address,
+		offset: device.offset,
+	},
+	"HomeWizard device",
+);
 
 const cache = new ReadingCache(`${CONFIG_DIR}/.cache.json`);
 
@@ -166,13 +186,14 @@ try {
 	const hook = new EnergyIdWebhook("EnergyID", { config, provisioningKey, provisioningSecret }, mapping);
 
 	if (argv.r) {
-		console.log(`Scheduling hw-hooks for ${meter}`);
+		logger.info(`Scheduling hw-hooks for ${meter}`);
 		await schedule(device, hook, cache);
 	} else {
-		console.log(`Execute all hooks for ${meter}`);
+		logger.info(`Execute all hooks for ${meter}`);
 		await execute(device, hook, cache);
+		await closeLogger();
 	}
 } catch (error) {
-	console.error(error.message);
-	process.exit(1);
+	logger.error({ err: error }, error.message);
+	await closeAndExit(1);
 }

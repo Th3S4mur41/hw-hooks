@@ -2,6 +2,8 @@
  * Webhook class
  */
 
+import { getLogger } from "../logging/logger.mjs";
+
 const METHODS = new Set(["GET", "POST", "PUT", "PATCH", "DELETE"]); // Supported HTTP methods
 
 /**
@@ -21,6 +23,26 @@ export const SEND_RESULT = {
  */
 const isEmptyPayload = (payload) =>
 	payload === undefined || payload === null || (typeof payload === "object" && Object.keys(payload).length === 0);
+
+const PLACEHOLDER_PATTERN = /\$\{(\w+)\}/g;
+
+const interpolateMapping = (value, data, missingKeys) => {
+	if (typeof value === "string") {
+		return value.replace(PLACEHOLDER_PATTERN, (_, key) => {
+			if (data[key] === undefined) missingKeys.add(key);
+			return data[key];
+		});
+	}
+
+	if (Array.isArray(value)) return value.map((item) => interpolateMapping(item, data, missingKeys));
+	if (value && typeof value === "object") {
+		return Object.fromEntries(
+			Object.entries(value).map(([key, item]) => [key, interpolateMapping(item, data, missingKeys)]),
+		);
+	}
+
+	return value;
+};
 
 export class Webhook {
 	#name;
@@ -45,9 +67,9 @@ export class Webhook {
 		this.#mapping = mapping;
 		this.#callInterval = callInterval;
 
-		console.log(`[${this.#name}] Webhook created`);
-		console.debug(
-			`[${this.#name}] Webhook config: ${this.#url} - ${this.#method} - ${JSON.stringify(this.#mapping)} - Call Interval: ${this.#callInterval}ms`,
+		getLogger().info(`[${this.#name}] Webhook created`);
+		getLogger().debug(
+			`[${this.#name}] Webhook config: ${this.#url} - ${this.#method} - ${JSON.stringify(this.#mapping)} - Call Interval: ${this.#callInterval}s`,
 		);
 	}
 
@@ -127,17 +149,14 @@ export class Webhook {
 	 * @returns {Object} - The formatted data
 	 */
 	#formatData = (data) => {
-		const jsonString = JSON.stringify(this.#mapping);
-		// Check if any placholders is missing from data
-		const missingKeys = jsonString.match(/\$\{(\w+)\}/g).map((key) => key.substring(2, key.length - 1));
-		if (missingKeys.some((key) => data[key] === undefined)) {
-			console.debug(`[${this.#name}] Missing keys in data: ${missingKeys}`);
+		const missingKeys = new Set();
+		const formattedData = interpolateMapping(this.#mapping, data, missingKeys);
+		if (missingKeys.size > 0) {
+			getLogger().debug(`[${this.#name}] Missing keys in data: ${[...missingKeys]}`);
 			return undefined;
 		}
 
-		// Replace the placeholders with the data
-		const formattedData = jsonString.replace(/\$\{(\w+)\}/g, (_, key) => data[key]);
-		return JSON.parse(formattedData);
+		return formattedData;
 	};
 
 	/**
@@ -189,14 +208,14 @@ export class Webhook {
 		const jsonData = await this._buildPayload(data);
 
 		if (isEmptyPayload(jsonData)) {
-			console.warn(`[${this.#name}] No data matching the mapping. Skipping send.`);
+			getLogger().warn(`[${this.#name}] No data matching the mapping. Skipping send.`);
 			return { exitCode: SEND_RESULT.ERROR, message: "No data matching the mapping. Skipping send." };
 		}
 
-		// Check if the last send was within the last hour
+		// Check if the last send was within the configured call interval
 		const now = new Date();
 		if (now - this.#synchronized < this.#callInterval * 1000) {
-			console.log(`[${this.#name}] Data was sent less than ${this.#callInterval}s ago. Skipping send.`);
+			getLogger().info(`[${this.#name}] Data was sent less than ${this.#callInterval}s ago. Skipping send.`);
 			return {
 				exitCode: SEND_RESULT.SKIPPED,
 				message: `Data was sent less than ${this.#callInterval}s ago. Skipping send.`,
@@ -204,10 +223,10 @@ export class Webhook {
 		}
 
 		if (dryRun) {
-			console.log(`[${this.#name}] Would send ${JSON.stringify(jsonData)}...`);
+			getLogger().info(`[${this.#name}] Would send ${JSON.stringify(jsonData)}...`);
 			return { exitCode: SEND_RESULT.SKIPPED, message: "Dry run. Nothing was sent." };
 		}
-		console.log(`[${this.#name}] Sending ${JSON.stringify(jsonData)}...`);
+		getLogger().info(`[${this.#name}] Sending ${JSON.stringify(jsonData)}...`);
 
 		try {
 			let response = await this.#request(jsonData);
@@ -223,9 +242,9 @@ export class Webhook {
 			if (!response.ok) {
 				throw new Error(`Failed to send data: ${response.statusText}`);
 			}
-			console.log(`[${this.#name}] Data sent successfully`);
+			getLogger().info(`[${this.#name}] Data sent successfully`);
 		} catch (error) {
-			console.error("Failed to send data", error);
+			getLogger().error({ err: error }, "Failed to send data");
 			return { exitCode: SEND_RESULT.ERROR, message: error.message };
 		}
 
@@ -246,7 +265,7 @@ export class Webhook {
 		const retryAfter =
 			Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0 ? retryAfterSeconds : this.#callInterval;
 
-		console.warn(`[${this.#name}] Rate limited. Retry after ${retryAfter}s`);
+		getLogger().warn(`[${this.#name}] Rate limited. Retry after ${retryAfter}s`);
 
 		// Push the synchronized timestamp forward and stretch the interval so `send` naturally skips until Retry-After elapses
 		this.#setSynchronized(new Date());

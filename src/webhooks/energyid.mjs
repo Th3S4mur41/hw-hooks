@@ -3,6 +3,7 @@
  */
 
 import { randomUUID } from "node:crypto";
+import { getLogger } from "../logging/logger.mjs";
 import { Webhook } from "./webhook.mjs";
 
 const HELLO_URL = "https://hooks.energyid.eu/hello";
@@ -144,7 +145,7 @@ export class EnergyIdWebhook extends Webhook {
 		if (this.#helloTimer) return;
 		this.#helloTimer = setInterval(() => {
 			void this.#ensureProvisioned().catch((error) =>
-				console.error(`[${this.name}] Failed to refresh EnergyID connection: ${error.message}`),
+				getLogger().error({ err: error }, `[${this.name}] Failed to refresh EnergyID connection`),
 			);
 		}, HELLO_REFRESH_INTERVAL);
 		this.#helloTimer.unref?.();
@@ -158,7 +159,7 @@ export class EnergyIdWebhook extends Webhook {
 		if (!connection?.webhookUrl) return;
 
 		if (!isEnergyIdWebhookUrl(connection.webhookUrl)) {
-			console.warn(`[${this.name}] Ignoring webhook URL outside https://${WEBHOOK_HOST}: ${connection.webhookUrl}`);
+			getLogger().warn(`[${this.name}] Ignoring webhook URL outside https://${WEBHOOK_HOST}: ${connection.webhookUrl}`);
 			return;
 		}
 
@@ -193,14 +194,10 @@ export class EnergyIdWebhook extends Webhook {
 		if (this.#claimCodeShown === claimCode) return;
 		this.#claimCodeShown = claimCode;
 
-		console.log("");
-		console.log(`[${this.name}] This device is not linked to an EnergyID record yet.`);
-		console.log(`  Claim code: ${claimCode}`);
-		console.log(`  Claim URL:  ${claimUrl}`);
-		if (exp) console.log(`  Expires:    ${new Date(exp * 1000).toLocaleString()}`);
-		console.log("  Open the claim URL and follow the instructions on the EnergyID website to link this device.");
-		console.log("  Waiting for the device to be claimed...");
-		console.log("");
+		getLogger().info(
+			{ claimCode, claimUrl, expiresAt: exp ? new Date(exp * 1000).toISOString() : undefined },
+			`[${this.name}] This device is not linked to an EnergyID record yet. Open the claim URL to link it. Waiting for the device to be claimed...`,
+		);
 	};
 
 	/**
@@ -243,7 +240,7 @@ export class EnergyIdWebhook extends Webhook {
 		this.#lastHelloAt = new Date();
 		this.#persistConnection();
 		this.#claimCodeShown = undefined;
-		console.log(`[${this.name}] Device claimed for record ${body.recordName} (${body.recordNumber})`);
+		getLogger().info(`[${this.name}] Device claimed for record ${body.recordName} (${body.recordNumber})`);
 		return true;
 	};
 
@@ -319,7 +316,7 @@ export class EnergyIdWebhook extends Webhook {
 		const payloads = readings.map(this.#mapReading).filter((payload) => payload !== undefined);
 
 		if (payloads.length === 0) {
-			console.debug(`[${this.name}] No data matching the mapping: ${Object.keys(this.mapping)}`);
+			getLogger().debug(`[${this.name}] No data matching the mapping: ${Object.keys(this.mapping)}`);
 			return undefined;
 		}
 
@@ -330,7 +327,7 @@ export class EnergyIdWebhook extends Webhook {
 	 * @override
 	 */
 	_onUnauthorized = async () => {
-		console.log(`[${this.name}] Authorization expired. Re-provisioning...`);
+		getLogger().info(`[${this.name}] Authorization expired. Re-provisioning...`);
 		this.#webhookUrl = undefined;
 		this.#headers = undefined;
 		await this.#ensureProvisioned();

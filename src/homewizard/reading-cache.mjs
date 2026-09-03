@@ -5,6 +5,7 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { getLogger } from "../logging/logger.mjs";
 
 const DEFAULT_CACHE_FILE = "./config/.cache.json";
 const READING_KEY_PATTERN = /^[a-z0-9_.-]+$/i;
@@ -60,7 +61,7 @@ export class ReadingCache {
 	add = (reading) => {
 		const sanitized = sanitizeReading(reading);
 		if (!sanitized) {
-			console.warn("[ReadingCache] Ignoring invalid reading");
+			getLogger().warn("[ReadingCache] Ignoring invalid reading");
 			return false;
 		}
 
@@ -96,20 +97,20 @@ export class ReadingCache {
 		try {
 			const parsed = JSON.parse(fs.readFileSync(this.#filePath, "utf8"));
 			if (!Array.isArray(parsed)) {
-				console.warn(`[ReadingCache] Ignoring invalid cache format at ${this.#filePath} (expected an array)`);
+				getLogger().warn(`[ReadingCache] Ignoring invalid cache format at ${this.#filePath} (expected an array)`);
 				return [];
 			}
 
 			const readings = parsed.map(sanitizeReading).filter((reading) => reading !== undefined);
 			if (readings.length !== parsed.length) {
-				console.warn(
+				getLogger().warn(
 					`[ReadingCache] Dropped ${parsed.length - readings.length} invalid reading(s) from ${this.#filePath}`,
 				);
 			}
 			return readings;
 		} catch (error) {
 			if (error.code !== "ENOENT") {
-				console.warn(`[ReadingCache] Ignoring unreadable cache at ${this.#filePath}: ${error.message}`);
+				getLogger().warn(`[ReadingCache] Ignoring unreadable cache at ${this.#filePath}: ${error.message}`);
 			}
 			return [];
 		}

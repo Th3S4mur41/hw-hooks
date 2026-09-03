@@ -3,6 +3,8 @@
  * is handled independently by the caller (see src/index.mjs), so Device only deals with reading.
  */
 
+import { getLogger } from "../logging/logger.mjs";
+
 const PROTOCOL = "http"; // Protocol used for API requests
 const PRIVATE_CONSTRUCTOR_KEY = Symbol("private"); // Symbol to enforce private constructor
 
@@ -153,11 +155,11 @@ export class Device {
 	 */
 	update = async () => {
 		const url = `${PROTOCOL}://${this.#address}/api/${this.#apiVersion}/data/`;
-		this.log(`Updating data from ${url} ...`);
+		getLogger().info(`[${this.#name} - ${this.#serial}] Updating data from ${url} ...`);
 
 		return fetch(url)
 			.then((result) => {
-				console.log(`${this.#address}'s data:`);
+				getLogger().debug(`${this.#address}'s data:`);
 				return result.json();
 			})
 			.then((data) => {
@@ -168,21 +170,13 @@ export class Device {
 					data.updated = updated.toISOString();
 				}
 
-				console.log(data);
+				getLogger().debug(data, `[${this.#name} - ${this.#serial}] Received data`);
 				this.#data = data;
 				this.#updated = new Date();
 				return data;
 			})
 			.catch((error) => {
-				console.error(`${this.#address} cannot update data from ${url}: ${error.message}`);
+				getLogger().error({ err: error }, `${this.#address} cannot update data from ${url}`);
 			});
-	};
-
-	/**
-	 * Log a message with the device's name and serial number
-	 * @param {string} message - The message to log
-	 */
-	log = (message) => {
-		console.log(`[${this.#name} - ${this.#serial}] ${message}`);
 	};
 }
