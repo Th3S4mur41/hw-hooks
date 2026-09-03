@@ -84,7 +84,7 @@ export const schedule = async (device, hook, cache, readInterval = DEFAULT_READ_
 
 	if (!dryRun) await hook.connect(); // learn the upload interval before scheduling sends
 	const sendInterval = (hook.uploadInterval || 60) * 1000;
-	getLogger().info({ sendInterval }, "Sending cached readings at the EnergyID upload interval");
+	getLogger().info({ sendIntervalMs: sendInterval }, "Sending cached readings at the EnergyID upload interval");
 	setInterval(
 		() => void flushCache(hook, cache).catch((error) => getLogger().error({ err: error }, "[schedule] Send failed")),
 		sendInterval,
