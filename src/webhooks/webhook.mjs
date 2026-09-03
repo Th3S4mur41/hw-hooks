@@ -49,7 +49,7 @@ export class Webhook {
 
 		getLogger().info(`[${this.#name}] Webhook created`);
 		getLogger().debug(
-			`[${this.#name}] Webhook config: ${this.#url} - ${this.#method} - ${JSON.stringify(this.#mapping)} - Call Interval: ${this.#callInterval}ms`,
+			`[${this.#name}] Webhook config: ${this.#url} - ${this.#method} - ${JSON.stringify(this.#mapping)} - Call Interval: ${this.#callInterval}s`,
 		);
 	}
 
