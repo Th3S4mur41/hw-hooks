@@ -24,6 +24,26 @@ export const SEND_RESULT = {
 const isEmptyPayload = (payload) =>
 	payload === undefined || payload === null || (typeof payload === "object" && Object.keys(payload).length === 0);
 
+const PLACEHOLDER_PATTERN = /\$\{(\w+)\}/g;
+
+const interpolateMapping = (value, data, missingKeys) => {
+	if (typeof value === "string") {
+		return value.replace(PLACEHOLDER_PATTERN, (_, key) => {
+			if (data[key] === undefined) missingKeys.add(key);
+			return data[key];
+		});
+	}
+
+	if (Array.isArray(value)) return value.map((item) => interpolateMapping(item, data, missingKeys));
+	if (value && typeof value === "object") {
+		return Object.fromEntries(
+			Object.entries(value).map(([key, item]) => [key, interpolateMapping(item, data, missingKeys)]),
+		);
+	}
+
+	return value;
+};
+
 export class Webhook {
 	#name;
 	#url;
@@ -129,17 +149,14 @@ export class Webhook {
 	 * @returns {Object} - The formatted data
 	 */
 	#formatData = (data) => {
-		const jsonString = JSON.stringify(this.#mapping);
-		// Check if any placeholders are missing from data
-		const missingKeys = (jsonString.match(/\$\{(\w+)\}/g) ?? []).map((key) => key.substring(2, key.length - 1));
-		if (missingKeys.some((key) => data[key] === undefined)) {
-			getLogger().debug(`[${this.#name}] Missing keys in data: ${missingKeys}`);
+		const missingKeys = new Set();
+		const formattedData = interpolateMapping(this.#mapping, data, missingKeys);
+		if (missingKeys.size > 0) {
+			getLogger().debug(`[${this.#name}] Missing keys in data: ${[...missingKeys]}`);
 			return undefined;
 		}
 
-		// Replace the placeholders with the data
-		const formattedData = jsonString.replace(/\$\{(\w+)\}/g, (_, key) => data[key]);
-		return JSON.parse(formattedData);
+		return formattedData;
 	};
 
 	/**

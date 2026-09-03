@@ -93,6 +93,17 @@ describe("Webhook", () => {
 		expect(result).toEqual({ exitCode: 0, message: "Data sent successfully" });
 	});
 
+	it("should safely interpolate values with JSON-special characters", async () => {
+		fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) });
+		const webhook = new Webhook(mockName, mockUrl, mockMethod, { message: "${value}" });
+		const value = 'quoted "text"\nwith a new line';
+
+		const result = await webhook.send({ value });
+
+		expect(fetch).toHaveBeenCalledWith(mockUrl, expect.objectContaining({ body: JSON.stringify({ message: value }) }));
+		expect(result).toEqual({ exitCode: 0, message: "Data sent successfully" });
+	});
+
 	it("should handle data sending failure", async () => {
 		fetch.mockResolvedValueOnce({
 			ok: false,
