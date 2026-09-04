@@ -39,11 +39,11 @@ describe("logger", () => {
 		const { logger } = createLogger({ fileEnabled: true, filePath: "/tmp/hw-hooks.log" });
 
 		expect(logger.level).toBe("info");
-		expect(createStream).toHaveBeenCalledWith("/tmp/hw-hooks.log", {
+		expect(createStream).toHaveBeenCalledWith("hw-hooks.log", {
 			interval: "1d",
 			maxFiles: 7,
 			compress: "gzip",
-			path: ".",
+			path: "/tmp",
 		});
 	});
 });
