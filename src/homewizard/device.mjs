@@ -13,6 +13,15 @@ const AVAHI_TIMEOUT_MS = 5000;
 
 const isDnsNotFound = (error) => error?.cause?.code === "ENOTFOUND" || error?.code === "ENOTFOUND";
 
+const annotateFetchError = (error, { address, url, resolvedFrom }) => {
+	if (error && typeof error === "object") {
+		error.attemptedAddress = address;
+		error.attemptedUrl = url;
+		if (resolvedFrom) error.resolvedFrom = resolvedFrom;
+	}
+	return error;
+};
+
 const resolveWithAvahi = async (address) => {
 	if (isIP(address)) return address;
 
@@ -40,14 +49,18 @@ const fetchFromDevice = async (address, apiPath) => {
 	try {
 		return { address, response: await fetch(url), url };
 	} catch (error) {
-		if (!isDnsNotFound(error)) throw error;
+		if (!isDnsNotFound(error)) throw annotateFetchError(error, { address, url });
 
 		const resolvedAddress = await resolveWithAvahi(address);
-		if (resolvedAddress === address) throw error;
+		if (resolvedAddress === address) throw annotateFetchError(error, { address, url });
 
 		const resolvedUrl = `${PROTOCOL}://${resolvedAddress}${apiPath}`;
 		getLogger().debug(`${address} resolved to ${resolvedAddress} via Avahi`);
-		return { address: resolvedAddress, response: await fetch(resolvedUrl), url: resolvedUrl };
+		try {
+			return { address: resolvedAddress, response: await fetch(resolvedUrl), url: resolvedUrl };
+		} catch (resolvedError) {
+			throw annotateFetchError(resolvedError, { address: resolvedAddress, url: resolvedUrl, resolvedFrom: address });
+		}
 	}
 };
 
@@ -224,7 +237,7 @@ export class Device {
 				return data;
 			})
 			.catch((error) => {
-				getLogger().error({ err: error }, `${this.#address} cannot update data from ${url}`);
+				getLogger().error({ err: error }, `${this.#address} cannot update data from ${error.attemptedUrl || url}`);
 			});
 	};
 }

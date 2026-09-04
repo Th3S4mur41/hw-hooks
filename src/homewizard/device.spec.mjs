@@ -1,5 +1,6 @@
 import { execFile } from "node:child_process";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { getLogger } from "../logging/logger.mjs";
 import { Device } from "./device.mjs";
 
 vi.mock("node:child_process", () => ({ execFile: vi.fn() }));
@@ -118,6 +119,33 @@ describe("Device", () => {
 		await device.update();
 
 		expect(device.data).toEqual({});
+	});
+
+	it("should log the resolved URL when update fails after Avahi resolution", async () => {
+		fetch.mockResolvedValueOnce({
+			ok: true,
+			json: async () => mockData,
+		});
+
+		const device = await Device.init("hw-p1meter-0c380e", mockOffset);
+		const error = Object.assign(new TypeError("fetch failed"), { cause: { code: "ENOTFOUND" } });
+		const resolvedError = new Error("Connection refused");
+		fetch.mockRejectedValueOnce(error).mockRejectedValueOnce(resolvedError);
+		execFile.mockImplementationOnce((_command, _args, _options, callback) => {
+			callback(null, "hw-p1meter-0c380e.local\t192.168.1.123\n");
+		});
+		const logSpy = vi.spyOn(getLogger(), "error").mockImplementation(() => {});
+
+		await device.update();
+
+		expect(resolvedError.attemptedAddress).toBe("192.168.1.123");
+		expect(resolvedError.attemptedUrl).toBe("http://192.168.1.123/api/v1/data/");
+		expect(resolvedError.resolvedFrom).toBe("hw-p1meter-0c380e");
+		expect(logSpy).toHaveBeenCalledWith(
+			{ err: resolvedError },
+			"hw-p1meter-0c380e cannot update data from http://192.168.1.123/api/v1/data/",
+		);
+		logSpy.mockRestore();
 	});
 
 	it("should return correct offset", async () => {
