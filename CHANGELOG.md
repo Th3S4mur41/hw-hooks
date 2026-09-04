@@ -1,3 +1,9 @@
+## [2.0.0-alpha.9](https://github.com/Th3S4mur41/hw-hooks/compare/v2.0.0-alpha.8...v2.0.0-alpha.9) (2026-09-04)
+
+### Bug Fixes
+
+* log path handling and add mDNS hostname resolution ([#493](https://github.com/Th3S4mur41/hw-hooks/issues/493)) ([4ead1ae](https://github.com/Th3S4mur41/hw-hooks/commit/4ead1ae3a878eddcdfc5837d5ba1a23a6ee49f05))
+
 ## [2.0.0-alpha.8](https://github.com/Th3S4mur41/hw-hooks/compare/v2.0.0-alpha.7...v2.0.0-alpha.8) (2026-09-03)
 
 ### Features
