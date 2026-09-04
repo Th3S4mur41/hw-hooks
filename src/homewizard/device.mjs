@@ -3,10 +3,66 @@
  * is handled independently by the caller (see src/index.mjs), so Device only deals with reading.
  */
 
+import { execFile } from "node:child_process";
+import { isIP } from "node:net";
 import { getLogger } from "../logging/logger.mjs";
 
 const PROTOCOL = "http"; // Protocol used for API requests
 const PRIVATE_CONSTRUCTOR_KEY = Symbol("private"); // Symbol to enforce private constructor
+const AVAHI_TIMEOUT_MS = 5000;
+
+const isDnsNotFound = (error) => error?.cause?.code === "ENOTFOUND" || error?.code === "ENOTFOUND";
+
+const annotateFetchError = (error, { address, url, resolvedFrom }) => {
+	if (error && typeof error === "object") {
+		error.attemptedAddress = address;
+		error.attemptedUrl = url;
+		if (resolvedFrom) error.resolvedFrom = resolvedFrom;
+	}
+	return error;
+};
+
+const resolveWithAvahi = async (address) => {
+	if (isIP(address)) return address;
+
+	const candidates = [...new Set([address.endsWith(".local") ? address : `${address}.local`, address])];
+	for (const candidate of candidates) {
+		try {
+			const stdout = await new Promise((resolve, reject) => {
+				execFile("avahi-resolve-host-name", ["-4", candidate], { timeout: AVAHI_TIMEOUT_MS }, (error, output) => {
+					if (error) reject(error);
+					else resolve(output);
+				});
+			});
+			const [, resolvedAddress] = stdout.trim().split(/\s+/);
+			if (resolvedAddress) return resolvedAddress;
+		} catch {
+			// Try the next candidate; the original fetch error is more useful to callers if none resolve.
+		}
+	}
+
+	return address;
+};
+
+const fetchFromDevice = async (address, apiPath) => {
+	const url = `${PROTOCOL}://${address}${apiPath}`;
+	try {
+		return { address, response: await fetch(url), url };
+	} catch (error) {
+		if (!isDnsNotFound(error)) throw annotateFetchError(error, { address, url });
+
+		const resolvedAddress = await resolveWithAvahi(address);
+		if (resolvedAddress === address) throw annotateFetchError(error, { address, url });
+
+		const resolvedUrl = `${PROTOCOL}://${resolvedAddress}${apiPath}`;
+		getLogger().debug(`${address} resolved to ${resolvedAddress} via Avahi`);
+		try {
+			return { address: resolvedAddress, response: await fetch(resolvedUrl), url: resolvedUrl };
+		} catch (resolvedError) {
+			throw annotateFetchError(resolvedError, { address: resolvedAddress, url: resolvedUrl, resolvedFrom: address });
+		}
+	}
+};
 
 export class Device {
 	#name;
@@ -14,6 +70,7 @@ export class Device {
 	#firmwareVersion;
 	#apiVersion;
 	#address;
+	#apiAddress;
 	#offset;
 	#data = {};
 	#updated = new Date(0);
@@ -28,7 +85,7 @@ export class Device {
 	 * @param {string} address - Address of the device
 	 * @param {number} offset - Offset value for the device
 	 */
-	constructor(key, name, serial, firmwareVersion, apiVersion, address, offset) {
+	constructor(key, name, serial, firmwareVersion, apiVersion, address, apiAddress, offset) {
 		if (key !== PRIVATE_CONSTRUCTOR_KEY) {
 			throw new Error("Use Device.init() to create an instance");
 		}
@@ -37,6 +94,7 @@ export class Device {
 		this.#firmwareVersion = firmwareVersion;
 		this.#apiVersion = apiVersion;
 		this.#address = address;
+		this.#apiAddress = apiAddress;
 		this.#offset = offset;
 	}
 
@@ -50,7 +108,7 @@ export class Device {
 	 */
 	static async init(address, offset = 0, config = undefined) {
 		try {
-			const response = await fetch(`${PROTOCOL}://${address}/api/`);
+			const { response, address: apiAddress } = await fetchFromDevice(address, "/api/");
 			if (!response.ok) {
 				throw new Error(`Cannot initialize ${address}`);
 			}
@@ -67,6 +125,7 @@ export class Device {
 				data.firmware_version,
 				data.api_version,
 				address,
+				apiAddress,
 				offset,
 			);
 		} catch (error) {
@@ -154,13 +213,15 @@ export class Device {
 	 * @returns {Promise<Object>} - The data from the HomeWizard device
 	 */
 	update = async () => {
-		const url = `${PROTOCOL}://${this.#address}/api/${this.#apiVersion}/data/`;
+		const apiPath = `/api/${this.#apiVersion}/data/`;
+		const url = `${PROTOCOL}://${this.#apiAddress}${apiPath}`;
 		getLogger().info(`[${this.#name} - ${this.#serial}] Updating data from ${url} ...`);
 
-		return fetch(url)
+		return fetchFromDevice(this.#apiAddress, apiPath)
 			.then((result) => {
+				this.#apiAddress = result.address;
 				getLogger().debug(`${this.#address}'s data:`);
-				return result.json();
+				return result.response.json();
 			})
 			.then((data) => {
 				if (!data.updated) {
@@ -176,7 +237,7 @@ export class Device {
 				return data;
 			})
 			.catch((error) => {
-				getLogger().error({ err: error }, `${this.#address} cannot update data from ${url}`);
+				getLogger().error({ err: error }, `${this.#address} cannot update data from ${error.attemptedUrl || url}`);
 			});
 	};
 }

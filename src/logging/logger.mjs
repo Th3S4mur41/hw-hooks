@@ -26,11 +26,11 @@ export const createLogger = ({ level = DEFAULT_LOG_LEVEL, fileEnabled = false, f
 
 	if (fileEnabled) {
 		fs.mkdirSync(path.dirname(filePath), { recursive: true });
-		rotatingStream = createStream(filePath, {
+		rotatingStream = createStream(path.basename(filePath), {
 			interval: "1d",
 			maxFiles: 7,
 			compress: "gzip",
-			path: ".",
+			path: path.dirname(filePath),
 		});
 		streams.push({ stream: rotatingStream });
 	}
