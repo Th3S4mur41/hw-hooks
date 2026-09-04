@@ -1,5 +1,8 @@
+import { execFile } from "node:child_process";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Device } from "./device.mjs";
+
+vi.mock("node:child_process", () => ({ execFile: vi.fn() }));
 
 globalThis.fetch = vi.fn();
 
@@ -19,6 +22,7 @@ describe("Device", () => {
 
 	beforeEach(() => {
 		fetch.mockReset();
+		execFile.mockReset();
 	});
 
 	it("should initialize successfully with valid data", async () => {
@@ -35,6 +39,29 @@ describe("Device", () => {
 		expect(device.name).toBe(mockData.product_name);
 		expect(device.serial).toBe(mockData.serial);
 		expect(device.firmwareVersion).toBe(mockData.firmware_version);
+	});
+
+	it("should initialize through Avahi when DNS cannot resolve an mDNS hostname", async () => {
+		fetch
+			.mockRejectedValueOnce(Object.assign(new TypeError("fetch failed"), { cause: { code: "ENOTFOUND" } }))
+			.mockResolvedValueOnce({
+				ok: true,
+				json: async () => mockData,
+			});
+		execFile.mockImplementationOnce((_command, _args, _options, callback) => {
+			callback(null, "hw-p1meter-0c380e.local\t192.168.1.123\n");
+		});
+
+		const device = await Device.init("hw-p1meter-0c380e", mockOffset);
+
+		expect(device.address).toBe("hw-p1meter-0c380e");
+		expect(execFile).toHaveBeenCalledWith(
+			"avahi-resolve-host-name",
+			["-4", "hw-p1meter-0c380e.local"],
+			expect.any(Object),
+			expect.any(Function),
+		);
+		expect(fetch).toHaveBeenNthCalledWith(2, "http://192.168.1.123/api/");
 	});
 
 	it("should throw an error if initialization fails", async () => {
