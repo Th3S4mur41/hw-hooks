@@ -1,3 +1,9 @@
+## [1.3.24](https://github.com/Th3S4mur41/hw-hooks/compare/v1.3.23...v1.3.24) (2026-09-09)
+
+### Bug Fixes
+
+* remove provenance flag from publishConfig in package.json ([51b3b04](https://github.com/Th3S4mur41/hw-hooks/commit/51b3b0466446b6e5637fb8156b61f15b1f6d95c6))
+
 ## [1.3.23](https://github.com/Th3S4mur41/hw-hooks/compare/v1.3.22...v1.3.23) (2026-09-09)
 
 ### Bug Fixes
