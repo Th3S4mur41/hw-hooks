@@ -1,3 +1,9 @@
+## [1.3.23](https://github.com/Th3S4mur41/hw-hooks/compare/v1.3.22...v1.3.23) (2026-09-09)
+
+### Bug Fixes
+
+* add deprecation notice pointing to hw-hooks v2 ([adc8423](https://github.com/Th3S4mur41/hw-hooks/commit/adc84239796366390646adf1c97a8dc970eca0df))
+
 ## [1.3.22](https://github.com/Th3S4mur41/hw-hooks/compare/v1.3.21...v1.3.22) (2025-01-02)
 
 ### Bug Fixes
