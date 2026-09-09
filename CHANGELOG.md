@@ -1,3 +1,61 @@
+## [2.0.0-alpha.9](https://github.com/Th3S4mur41/hw-hooks/compare/v2.0.0-alpha.8...v2.0.0-alpha.9) (2026-09-04)
+
+### Bug Fixes
+
+* log path handling and add mDNS hostname resolution ([#493](https://github.com/Th3S4mur41/hw-hooks/issues/493)) ([4ead1ae](https://github.com/Th3S4mur41/hw-hooks/commit/4ead1ae3a878eddcdfc5837d5ba1a23a6ee49f05))
+
+## [2.0.0-alpha.8](https://github.com/Th3S4mur41/hw-hooks/compare/v2.0.0-alpha.7...v2.0.0-alpha.8) (2026-09-03)
+
+### Features
+
+* **logging:** implement structured logging with pino and rotating file ([#492](https://github.com/Th3S4mur41/hw-hooks/issues/492)) ([707cb4e](https://github.com/Th3S4mur41/hw-hooks/commit/707cb4e9fc9d156cf0eeb25c2abdf1ba0deb181e))
+
+## [2.0.0-alpha.7](https://github.com/Th3S4mur41/hw-hooks/compare/v2.0.0-alpha.6...v2.0.0-alpha.7) (2026-08-31)
+
+### Bug Fixes
+
+* energyID throttle respecting schedule ([d034378](https://github.com/Th3S4mur41/hw-hooks/commit/d0343786c60c5140522b25938ed63bb53ac87557))
+
+## [2.0.0-alpha.6](https://github.com/Th3S4mur41/hw-hooks/compare/v2.0.0-alpha.5...v2.0.0-alpha.6) (2026-08-31)
+
+### Bug Fixes
+
+* update CMD to use node and bin/cli.mjs in Dockerfile ([769808d](https://github.com/Th3S4mur41/hw-hooks/commit/769808dc538fa4260847e44f13ed1355add54b14))
+
+## [2.0.0-alpha.5](https://github.com/Th3S4mur41/hw-hooks/compare/v2.0.0-alpha.4...v2.0.0-alpha.5) (2026-08-31)
+
+### Bug Fixes
+
+* remove provenance from publishConfig in package.json ([61bdfe2](https://github.com/Th3S4mur41/hw-hooks/commit/61bdfe2a65318c726cdb562852ce600f196226bf))
+
+## [2.0.0-alpha.4](https://github.com/Th3S4mur41/hw-hooks/compare/v2.0.0-alpha.3...v2.0.0-alpha.4) (2026-08-31)
+
+### Bug Fixes
+
+* npm provenance on non main branch ([489f9c9](https://github.com/Th3S4mur41/hw-hooks/commit/489f9c9eb4633af24ddfd09bd19f624c3dd0f436))
+
+## [2.0.0-alpha.3](https://github.com/Th3S4mur41/hw-hooks/compare/v2.0.0-alpha.2...v2.0.0-alpha.3) (2026-08-31)
+
+### Features
+
+* update to energyid webhook v2 ([#487](https://github.com/Th3S4mur41/hw-hooks/issues/487)) ([5d08ad9](https://github.com/Th3S4mur41/hw-hooks/commit/5d08ad9f552f3fcd1c514a829eca4dc28f754d53))
+
+### Bug Fixes
+
+* attest docker image build provenance ([21e7297](https://github.com/Th3S4mur41/hw-hooks/commit/21e7297428b0ec3752c6a063d1478fbf6b8370cc))
+* **attest:** get the correct image name from package.json ([05feffb](https://github.com/Th3S4mur41/hw-hooks/commit/05feffb2ee322104093da3fa5b0bd28f5026e30e))
+* update digest format for docker attestation ([d3af611](https://github.com/Th3S4mur41/hw-hooks/commit/d3af611559d0a91ec6ea6570460099a2887b2524))
+
+## [2.0.0-alpha.2](https://github.com/Th3S4mur41/hw-hooks/compare/v2.0.0-alpha.1...v2.0.0-alpha.2) (2024-10-25)
+
+### Features
+
+* retreive device info from api ([9ce179f](https://github.com/Th3S4mur41/hw-hooks/commit/9ce179fce25f3da6aa73e9f76b85ecda5736fc1d))
+
+### Bug Fixes
+
+* add missing cli script ([9555c12](https://github.com/Th3S4mur41/hw-hooks/commit/9555c125b38e41a8a05375a67c5a13d4cbba8af0))
+
 ## [1.3.22](https://github.com/Th3S4mur41/hw-hooks/compare/v1.3.21...v1.3.22) (2025-01-02)
 
 ### Bug Fixes
@@ -25,8 +83,22 @@
 ### Dependencies and Other Build Updates
 
 * **deps-dev:** uninstall @semantic-release-plus/docker ([d128997](https://github.com/Th3S4mur41/hw-hooks/commit/d12899701d4bd49500d4cda6a7f9ae2d50cf5c54))
-* generate provenance statements for npm package ([94acf8e](https://github.com/Th3S4mur41/hw-hooks/commit/94acf8e4051e9ae1f1f9b7c023aa0811f1f29de7))
+* update linter commands ([46ea30d](https://github.com/Th3S4mur41/hw-hooks/commit/46ea30d60f797a24d938d83a1733cd6741ea3ead))
 * update lockfile ([e21092b](https://github.com/Th3S4mur41/hw-hooks/commit/e21092b016df908227bedc69bd8c74c8dbfda08e))
+
+## [2.0.0-alpha.1](https://github.com/Th3S4mur41/hw2energyid/compare/v1.3.18...v2.0.0-alpha.1) (2024-09-13)
+
+### ⚠ BREAKING CHANGES
+
+* npm package and docker image renamed to "hw-hooks"
+
+### chore
+
+* prepare renaming to hw-hooks ([0e574df](https://github.com/Th3S4mur41/hw2energyid/commit/0e574df1ceb5c4911a244920da6b50de3353eb86))
+
+### Dependencies and Other Build Updates
+
+* generate provenance statements for npm package ([94acf8e](https://github.com/Th3S4mur41/hw2energyid/commit/94acf8e4051e9ae1f1f9b7c023aa0811f1f29de7))
 
 ## [1.3.18](https://github.com/Th3S4mur41/hw2energyid/compare/v1.3.17...v1.3.18) (2024-09-02)
 

@@ -39,9 +39,13 @@ jobs:
     name: '▶️ actions'
     uses: ./.github/workflows/npm-lint.yml
 
+  npm-test:
+    name: '▶️ actions'
+    uses: ./.github/workflows/npm-test.yml
+
   docker:
     name: '▶️ actions'
-    needs: [npm-lint]
+    needs: [npm-lint, npm-test]
     uses: ./.github/workflows/docker.yml
     permissions:
       contents: read

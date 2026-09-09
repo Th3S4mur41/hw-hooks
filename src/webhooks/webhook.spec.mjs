@@ -1,0 +1,233 @@
+// src/webhook.test.mjs
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { getLogger } from "../logging/logger.mjs";
+import { Webhook } from "./webhook.mjs";
+
+globalThis.fetch = vi.fn();
+
+describe("Webhook", () => {
+	const mockName = "TestWebhook";
+	const mockUrl = "https://example.com/webhook";
+	const mockMethod = "POST";
+	// biome-ignore-start lint/suspicious/noTemplateCurlyInString: intentional placeholder syntax for #formatData, not a template literal
+	const mockMapping = {
+		key1: "${value1}",
+		key2: "${value2}",
+	};
+	// biome-ignore-end lint/suspicious/noTemplateCurlyInString: intentional placeholder syntax for #formatData, not a template literal
+	const mockData = {
+		value1: "data1",
+		value2: "data2",
+	};
+
+	beforeEach(() => {
+		fetch.mockReset();
+	});
+
+	it("should initialize successfully with valid data", () => {
+		const webhook = new Webhook(mockName, mockUrl, mockMethod, mockMapping);
+
+		expect(webhook).toBeInstanceOf(Webhook);
+		expect(webhook.name).toBe(mockName);
+		expect(webhook.url).toBe(mockUrl);
+		expect(webhook.method).toBe(mockMethod);
+	});
+
+	it("should default to GET method if invalid method is provided", () => {
+		const invalidMethod = "INVALID";
+		const webhook = new Webhook(mockName, mockUrl, invalidMethod, mockMapping);
+
+		expect(webhook.method).toBe("GET");
+	});
+
+	it("should send data successfully", async () => {
+		fetch.mockResolvedValueOnce({
+			ok: true,
+			json: async () => ({ success: true }),
+		});
+
+		const webhook = new Webhook(mockName, mockUrl, mockMethod, mockMapping);
+
+		const result = await webhook.send(mockData);
+
+		expect(fetch).toHaveBeenCalledWith(mockUrl, {
+			method: mockMethod,
+			headers: {
+				Accept: "application/json",
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({
+				key1: "data1",
+				key2: "data2",
+			}),
+		});
+		expect(result).toEqual({ exitCode: 0, message: "Data sent successfully" });
+	});
+
+	it("should not send an empty payload", async () => {
+		const webhook = new Webhook(mockName, mockUrl, mockMethod, mockMapping);
+		vi.spyOn(webhook, "_buildPayload").mockReturnValue({});
+
+		const result = await webhook.send(mockData);
+
+		expect(fetch).not.toHaveBeenCalled();
+		expect(result).toEqual({ exitCode: 1, message: "No data matching the mapping. Skipping send." });
+	});
+
+	it("should skip sending when the mapping is empty", async () => {
+		const webhook = new Webhook(mockName, mockUrl, mockMethod, {});
+
+		const result = await webhook.send(mockData);
+
+		expect(fetch).not.toHaveBeenCalled();
+		expect(result).toEqual({ exitCode: 1, message: "No data matching the mapping. Skipping send." });
+	});
+
+	it("should send literal-only mappings", async () => {
+		fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) });
+		const webhook = new Webhook(mockName, mockUrl, mockMethod, { source: "hw-hooks" });
+
+		const result = await webhook.send(mockData);
+
+		expect(fetch).toHaveBeenCalledWith(mockUrl, expect.objectContaining({ body: '{"source":"hw-hooks"}' }));
+		expect(result).toEqual({ exitCode: 0, message: "Data sent successfully" });
+	});
+
+	it("should safely interpolate values with JSON-special characters", async () => {
+		fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) });
+		const webhook = new Webhook(mockName, mockUrl, mockMethod, { message: "${value}" });
+		const value = 'quoted "text"\nwith a new line';
+
+		const result = await webhook.send({ value });
+
+		expect(fetch).toHaveBeenCalledWith(mockUrl, expect.objectContaining({ body: JSON.stringify({ message: value }) }));
+		expect(result).toEqual({ exitCode: 0, message: "Data sent successfully" });
+	});
+
+	it("should handle data sending failure", async () => {
+		fetch.mockResolvedValueOnce({
+			ok: false,
+			status: 500,
+			statusText: "Internal Server Error",
+		});
+
+		const webhook = new Webhook(mockName, mockUrl, mockMethod, mockMapping);
+
+		const result = await webhook.send(mockData);
+
+		expect(fetch).toHaveBeenCalledWith(mockUrl, {
+			method: mockMethod,
+			headers: {
+				Accept: "application/json",
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({
+				key1: "data1",
+				key2: "data2",
+			}),
+		});
+		expect(result).toEqual({ exitCode: 1, message: "Failed to send data: Internal Server Error" });
+	});
+
+	it("should report a rate limit hit as skipped and back off the call interval", async () => {
+		fetch.mockResolvedValueOnce({
+			ok: false,
+			status: 429,
+			headers: { get: () => "30" },
+		});
+
+		const webhook = new Webhook(mockName, mockUrl, mockMethod, mockMapping);
+
+		const result = await webhook.send(mockData);
+
+		expect(result).toEqual({ exitCode: 2, message: "Rate limited. Retry after 30s" });
+		expect(webhook.callInterval).toBe(30);
+		expect(webhook.synchronized).not.toEqual(new Date(0));
+	});
+
+	it("should default the retry delay to the current call interval when the Retry-After header is missing", async () => {
+		fetch.mockResolvedValueOnce({
+			ok: false,
+			status: 429,
+			headers: { get: () => null },
+		});
+
+		const webhook = new Webhook(mockName, mockUrl, mockMethod, mockMapping);
+
+		const result = await webhook.send(mockData);
+
+		expect(result).toEqual({ exitCode: 2, message: "Rate limited. Retry after 60s" });
+		expect(webhook.callInterval).toBe(60);
+	});
+
+	it("should report a rate limit hit on the 401 retry response too", async () => {
+		fetch
+			.mockResolvedValueOnce({ ok: false, status: 401, statusText: "Unauthorized" })
+			.mockResolvedValueOnce({ ok: false, status: 429, headers: { get: () => "30" } });
+
+		const webhook = new Webhook(mockName, mockUrl, mockMethod, mockMapping);
+
+		const result = await webhook.send(mockData);
+
+		expect(fetch).toHaveBeenCalledTimes(2);
+		expect(result).toEqual({ exitCode: 2, message: "Rate limited. Retry after 30s" });
+	});
+
+	it("should log data instead of sending when dryRun is true", async () => {
+		const logSpy = vi.spyOn(getLogger(), "info").mockImplementation(() => {});
+
+		const webhook = new Webhook(mockName, mockUrl, mockMethod, mockMapping);
+
+		const result = await webhook.send(mockData, true);
+
+		expect(logSpy).toHaveBeenCalledWith(
+			`[${mockName}] Would send ${JSON.stringify({
+				key1: "data1",
+				key2: "data2",
+			})}...`,
+		);
+		expect(result).toEqual({ exitCode: 2, message: "Dry run. Nothing was sent." });
+
+		logSpy.mockRestore();
+	});
+
+	it("should not send data if called within the call interval", async () => {
+		fetch.mockResolvedValueOnce({
+			ok: true,
+			json: async () => ({ success: true }),
+		});
+		const webhook = new Webhook(mockName, mockUrl, mockMethod, mockMapping);
+
+		await webhook.send(mockData);
+
+		// Second call within the interval
+		const result = await webhook.send(mockData);
+
+		expect(result).toEqual({ exitCode: 2, message: "Data was sent less than 60s ago. Skipping send." });
+		expect(fetch).toHaveBeenCalledTimes(1); // Ensure fetch was called only once
+	});
+
+	it("should send data if called after the call interval", async () => {
+		fetch.mockResolvedValueOnce({
+			ok: true,
+			json: async () => ({ success: true }),
+		});
+		const webhook = new Webhook(mockName, mockUrl, mockMethod, mockMapping, 1); // 1 second interval
+
+		// First call to send data
+		await webhook.send(mockData);
+
+		// Wait for the interval to pass
+		await new Promise((resolve) => setTimeout(resolve, 1100));
+
+		// Second call after the interval
+		fetch.mockResolvedValueOnce({
+			ok: true,
+			json: async () => ({ success: true }),
+		});
+		const result = await webhook.send(mockData);
+
+		expect(fetch).toHaveBeenCalledTimes(2); // Ensure fetch was called twice
+		expect(result).toEqual({ exitCode: 0, message: "Data sent successfully" });
+	});
+});
