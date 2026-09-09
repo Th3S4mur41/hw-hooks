@@ -1,3 +1,32 @@
+## [2.0.0](https://github.com/Th3S4mur41/hw-hooks/compare/v1.3.22...v2.0.0) (2026-09-09)
+
+### ⚠ BREAKING CHANGES
+
+* npm package and docker image renamed to "homewizard-webhooks"
+
+### chore
+
+* prepare renaming to homewizard-webhooks ([0e574df](https://github.com/Th3S4mur41/hw-hooks/commit/0e574df1ceb5c4911a244920da6b50de3353eb86))
+
+### Features
+
+* **logging:** implement structured logging with pino and rotating file ([#492](https://github.com/Th3S4mur41/hw-hooks/issues/492)) ([707cb4e](https://github.com/Th3S4mur41/hw-hooks/commit/707cb4e9fc9d156cf0eeb25c2abdf1ba0deb181e))
+* retreive device info from api ([9ce179f](https://github.com/Th3S4mur41/hw-hooks/commit/9ce179fce25f3da6aa73e9f76b85ecda5736fc1d))
+* update to energyid webhook v2 ([#487](https://github.com/Th3S4mur41/hw-hooks/issues/487)) ([5d08ad9](https://github.com/Th3S4mur41/hw-hooks/commit/5d08ad9f552f3fcd1c514a829eca4dc28f754d53))
+
+### Bug Fixes
+
+* add missing cli script ([9555c12](https://github.com/Th3S4mur41/hw-hooks/commit/9555c125b38e41a8a05375a67c5a13d4cbba8af0))
+* energyID throttle respecting schedule ([d034378](https://github.com/Th3S4mur41/hw-hooks/commit/d0343786c60c5140522b25938ed63bb53ac87557))
+* log path handling and add mDNS hostname resolution ([#493](https://github.com/Th3S4mur41/hw-hooks/issues/493)) ([4ead1ae](https://github.com/Th3S4mur41/hw-hooks/commit/4ead1ae3a878eddcdfc5837d5ba1a23a6ee49f05))
+* npm provenance on non main branch ([489f9c9](https://github.com/Th3S4mur41/hw-hooks/commit/489f9c9eb4633af24ddfd09bd19f624c3dd0f436))
+* remove provenance from publishConfig in package.json ([61bdfe2](https://github.com/Th3S4mur41/hw-hooks/commit/61bdfe2a65318c726cdb562852ce600f196226bf))
+* update CMD to use node and bin/cli.mjs in Dockerfile ([769808d](https://github.com/Th3S4mur41/hw-hooks/commit/769808dc538fa4260847e44f13ed1355add54b14))
+
+### Dependencies and Other Build Updates
+
+* update linter commands ([46ea30d](https://github.com/Th3S4mur41/hw-hooks/commit/46ea30d60f797a24d938d83a1733cd6741ea3ead))
+
 ## [2.0.0-alpha.9](https://github.com/Th3S4mur41/hw-hooks/compare/v2.0.0-alpha.8...v2.0.0-alpha.9) (2026-09-04)
 
 ### Bug Fixes
