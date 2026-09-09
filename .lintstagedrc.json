@@ -1,3 +1,6 @@
 {
-	"*": ["prettier --write --no-error-on-unmatched-pattern", "biome check --write --no-errors-on-unmatched"]
+	"*": [
+		"prettier --write --ignore-unknown --no-error-on-unmatched-pattern",
+		"biome check --write --no-errors-on-unmatched"
+	]
 }

@@ -1,5 +1,7 @@
 # HomeWizard to EnergyId
 
+> ⚠️ **Deprecated:** hw2energyid v1 is no longer maintained. Please migrate to [hw-hooks v2](https://github.com/Th3S4mur41/hw-hooks).
+
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://github.com/codespaces/new?machine=basicLinux32gb&repo=612398925&ref=main)
 
 ![Package version](https://img.shields.io/github/package-json/v/Th3S4mur41/hw-hooks)

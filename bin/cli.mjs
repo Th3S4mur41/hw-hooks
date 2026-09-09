@@ -49,6 +49,9 @@ if (!(argv.meter && argv.energyid)) {
 }
 
 console.log(`${process.env.npm_package_name} ${process.env.npm_package_version}`);
+console.warn(
+	"DEPRECATED: hw2energyid v1 is no longer maintained. Please migrate to hw-hooks v2: https://github.com/Th3S4mur41/hw-hooks",
+);
 console.log("");
 
 init(argv.meter, argv.energyid, argv.offset);

@@ -1,5 +1,9 @@
 FROM node:lts-slim
 
+# Deprecated: use ghcr.io/th3s4mur41/hw-hooks instead
+LABEL org.opencontainers.image.description="DEPRECATED: hw2energyid v1 is no longer maintained. Use ghcr.io/th3s4mur41/hw-hooks instead."
+LABEL org.opencontainers.image.url="https://github.com/Th3S4mur41/hw-hooks"
+
 RUN apt-get update && apt-get install avahi-utils -y
  
 WORKDIR /app
