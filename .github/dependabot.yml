@@ -24,10 +24,19 @@ updates:
       commitlint:
         patterns:
           - '@commitlint/*'
+      semantic-release:
+        patterns:
+          - 'semantic-release'
+          - '@semantic-release/*'
+          - '@codedependant/semantic-release-docker'
       typescript-eslint:
         patterns:
           - '@typescript-eslint/*'
-
+      vitest:
+        patterns:
+          - 'vitest'
+          - '@vitest/*'
+          
   - package-ecosystem: 'github-actions'
     directory: '/'
     schedule:
