@@ -100,7 +100,7 @@ ping <product-name>-<last 6 charachter of serial>
 Create a docker compose file with the following content:
 
 ```yaml
-version: '3'
+version: "3"
 
 services:
   hw-hooks:
