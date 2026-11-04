@@ -8,7 +8,7 @@ on:
   workflow_run:
     workflows: [Checks]
     types: [completed]
-    branches: [main, next, beta, alpha, 'releases/**']
+    branches: [main, next, beta, alpha, "releases/**"]
 
 concurrency:
   # group: ${{ github.workflow }}_${{ github.head_ref || github.ref || github.run_id }}
@@ -23,7 +23,7 @@ permissions:
 jobs:
   semantic-release:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
-    name: '▶️ actions'
+    name: "▶️ actions"
     uses: ./.github/workflows/semantic-release.yml
     secrets:
       GH_TOKEN: ${{ secrets.GH_TOKEN  }}

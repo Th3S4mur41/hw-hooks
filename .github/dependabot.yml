@@ -11,35 +11,35 @@
 version: 2
 
 updates:
-  - package-ecosystem: 'npm'
-    directory: '/' # Location of package manifests
+  - package-ecosystem: "npm"
+    directory: "/" # Location of package manifests
     schedule:
-      interval: 'daily'
-      time: '00:00'
-      timezone: 'Europe/Berlin'
+      interval: "daily"
+      time: "00:00"
+      timezone: "Europe/Berlin"
     groups:
       babel:
         patterns:
-          - '@babel/*'
+          - "@babel/*"
       commitlint:
         patterns:
-          - '@commitlint/*'
+          - "@commitlint/*"
       semantic-release:
         patterns:
-          - 'semantic-release'
-          - '@semantic-release/*'
-          - '@codedependant/semantic-release-docker'
+          - "semantic-release"
+          - "@semantic-release/*"
+          - "@codedependant/semantic-release-docker"
       typescript-eslint:
         patterns:
-          - '@typescript-eslint/*'
+          - "@typescript-eslint/*"
       vitest:
         patterns:
-          - 'vitest'
-          - '@vitest/*'
-          
-  - package-ecosystem: 'github-actions'
-    directory: '/'
+          - "vitest"
+          - "@vitest/*"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
     schedule:
-      interval: 'daily'
-      time: '00:00'
-      timezone: 'Europe/Berlin'
+      interval: "daily"
+      time: "00:00"
+      timezone: "Europe/Berlin"

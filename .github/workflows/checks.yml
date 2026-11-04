@@ -9,7 +9,7 @@ on:
     types: [opened, synchronize, reopened]
 
   push:
-    branches: [main, next, beta, alpha, 'releases/**']
+    branches: [main, next, beta, alpha, "releases/**"]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -24,11 +24,11 @@ permissions:
 
 jobs:
   lint-pr:
-    name: '▶️ actions'
+    name: "▶️ actions"
     uses: ./.github/workflows/lint-pr.yml
 
   dependencies:
-    name: '▶️ actions'
+    name: "▶️ actions"
     needs: [lint-pr]
     uses: ./.github/workflows/dependencies.yml
     permissions:
@@ -36,15 +36,15 @@ jobs:
       contents: write
 
   npm-lint:
-    name: '▶️ actions'
+    name: "▶️ actions"
     uses: ./.github/workflows/npm-lint.yml
 
   npm-test:
-    name: '▶️ actions'
+    name: "▶️ actions"
     uses: ./.github/workflows/npm-test.yml
 
   docker:
-    name: '▶️ actions'
+    name: "▶️ actions"
     needs: [npm-lint, npm-test]
     uses: ./.github/workflows/docker.yml
     permissions:

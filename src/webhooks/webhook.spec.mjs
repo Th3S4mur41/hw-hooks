@@ -95,6 +95,7 @@ describe("Webhook", () => {
 
 	it("should safely interpolate values with JSON-special characters", async () => {
 		fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) });
+		// biome-ignore lint/suspicious/noTemplateCurlyInString: intentional placeholder syntax for #formatData, not a template literal
 		const webhook = new Webhook(mockName, mockUrl, mockMethod, { message: "${value}" });
 		const value = 'quoted "text"\nwith a new line';
 
