@@ -21,9 +21,24 @@
 	"formatter": {
 		"lineWidth": 120
 	},
+	"files": {
+		"includes": ["**", "!CHANGELOG.md"]
+	},
 	"vcs": {
 		"enabled": true,
 		"clientKind": "git",
 		"useIgnoreFile": true
+	},
+	"javascript": {
+		"experimentalEmbeddedSnippetsEnabled": false
+	},
+	"markdown": {
+		"analyzeEmbeds": true,
+		"formatter": {
+			"formatEmbeds": true
+		},
+		"parser": {
+			"frontmatter": true
+		}
 	}
 }

@@ -40,15 +40,15 @@
 		"build": "npm run build:cli && npm run build:docker",
 		"build:cli": "node esbuild.config.mjs",
 		"build:docker": "docker build --tag hw-hooks .",
-		"lint": "biome ci . && prettier --check --ignore-unknown --no-error-on-unmatched-pattern .",
-		"lint:fix": "biome check --write . && prettier --write --ignore-unknown --no-error-on-unmatched-pattern .",
+		"lint": "biome ci .",
+		"lint:fix": "biome check --write .",
 		"prepare": "husky",
 		"release": "semantic-release",
 		"postversion": "npm run lint:fix",
 		"test": "vitest run --coverage"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "2.5.15",
+		"@biomejs/biome": "2.6.4",
 		"@codedependant/semantic-release-docker": "^8.0.0",
 		"@commitlint/cli": "^21.0.0",
 		"@commitlint/config-conventional": "^21.0.0",
@@ -58,7 +58,6 @@
 		"esbuild": "^0.28.2",
 		"husky": "^9.0.5",
 		"lint-staged": "^17.0.2",
-		"prettier": "^3.0.0",
 		"semantic-release": "^25.0.0",
 		"vitest": "^5.0.0"
 	},
