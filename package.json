@@ -63,7 +63,7 @@
 	},
 	"dependencies": {
 		"pino": "^10.3.1",
-		"rotating-file-stream": "^3.2.10",
+		"rotating-file-stream": "^4.0.0",
 		"yargs": "^18.0.0"
 	},
 	"overrides": {
