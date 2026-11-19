@@ -58,7 +58,7 @@
 		"esbuild": "^0.28.2",
 		"husky": "^9.0.5",
 		"lint-staged": "^17.0.2",
-		"semantic-release": "^25.0.0",
+		"semantic-release": "^26.0.1",
 		"vitest": "^5.0.0"
 	},
 	"dependencies": {
